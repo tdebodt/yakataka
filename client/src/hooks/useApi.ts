@@ -109,13 +109,37 @@ export function useProject(projectId: string | null) {
   }, [projectId, loadProject]);
 
   const moveColumn = useCallback(async (columnId: string, position: number) => {
-    if (!projectId) return;
-    await fetchApi(`/columns/${columnId}`, {
-      method: 'PUT',
-      body: JSON.stringify({ project_id: projectId, position }),
+    if (!projectId || !project) return;
+
+    // Optimistically update local state
+    const previousProject = project;
+    setProject((prev) => {
+      if (!prev) return prev;
+
+      const columnIndex = prev.columns.findIndex((c) => c.id === columnId);
+      if (columnIndex === -1) return prev;
+
+      const newColumns = [...prev.columns];
+      const [column] = newColumns.splice(columnIndex, 1);
+      newColumns.splice(position, 0, column);
+
+      // Recalculate positions
+      return {
+        ...prev,
+        columns: newColumns.map((c, idx) => ({ ...c, position: idx })),
+      };
     });
-    await loadProject();
-  }, [projectId, loadProject]);
+
+    try {
+      await fetchApi(`/columns/${columnId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ project_id: projectId, position }),
+      });
+      await loadProject();
+    } catch {
+      setProject(previousProject);
+    }
+  }, [projectId, project, loadProject]);
 
   const deleteColumn = useCallback(async (columnId: string) => {
     if (!projectId) return;
@@ -146,13 +170,77 @@ export function useProject(projectId: string | null) {
   }, [projectId, loadProject]);
 
   const moveCard = useCallback(async (cardId: string, columnId: string, position?: number) => {
-    if (!projectId) return;
-    await fetchApi(`/cards/${cardId}`, {
-      method: 'PUT',
-      body: JSON.stringify({ project_id: projectId, column_id: columnId, position }),
+    if (!projectId || !project) return;
+
+    // Optimistically update local state
+    const previousProject = project;
+    setProject((prev) => {
+      if (!prev) return prev;
+
+      // Find the card and its source column
+      let card: Card | undefined;
+      let sourceColumnId: string | undefined;
+
+      for (const col of prev.columns) {
+        const found = col.cards.find((c) => c.id === cardId);
+        if (found) {
+          card = found;
+          sourceColumnId = col.id;
+          break;
+        }
+      }
+
+      if (!card || !sourceColumnId) return prev;
+
+      // Create new columns array with the card moved
+      const newColumns = prev.columns.map((col) => {
+        // Remove card from source column
+        if (col.id === sourceColumnId) {
+          return {
+            ...col,
+            cards: col.cards.filter((c) => c.id !== cardId),
+          };
+        }
+        // Add card to destination column
+        if (col.id === columnId) {
+          const newCards = [...col.cards];
+          const insertAt = position !== undefined ? position : newCards.length;
+          newCards.splice(insertAt, 0, { ...card!, column_id: columnId });
+          // Recalculate positions
+          return {
+            ...col,
+            cards: newCards.map((c, idx) => ({ ...c, position: idx })),
+          };
+        }
+        return col;
+      });
+
+      // Recalculate positions in source column too
+      const finalColumns = newColumns.map((col) => {
+        if (col.id === sourceColumnId && col.id !== columnId) {
+          return {
+            ...col,
+            cards: col.cards.map((c, idx) => ({ ...c, position: idx })),
+          };
+        }
+        return col;
+      });
+
+      return { ...prev, columns: finalColumns };
     });
-    await loadProject();
-  }, [projectId, loadProject]);
+
+    try {
+      await fetchApi(`/cards/${cardId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ project_id: projectId, column_id: columnId, position }),
+      });
+      // Reload to get the authoritative state from server
+      await loadProject();
+    } catch {
+      // Revert on error
+      setProject(previousProject);
+    }
+  }, [projectId, project, loadProject]);
 
   const deleteCard = useCallback(async (cardId: string) => {
     if (!projectId) return;

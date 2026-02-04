@@ -85,9 +85,21 @@ All state changes are stored as events in SQLite. State is reconstructed by repl
 
 ## MCP Server
 
-The MCP server takes a workspace URL as argument:
+The MCP server runs on HTTP with SSE transport. Start it with:
 ```bash
+# Default port 3001
 node mcp-server/dist/index.js http://localhost:3000/{workspace-uuid}
+
+# Custom port
+node mcp-server/dist/index.js http://localhost:3000/{workspace-uuid} --port 4000
+
+# Or via environment variable
+MCP_PORT=4000 node mcp-server/dist/index.js http://localhost:3000/{workspace-uuid}
+```
+
+Then add to Claude Code:
+```bash
+claude mcp add takayaka --transport sse http://localhost:3001/sse
 ```
 
 It provides 18 tools for managing projects, columns, cards, and dependencies.

@@ -1,16 +1,50 @@
 #!/usr/bin/env node
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
+import express, { Request, Response } from 'express';
 
-// Parse workspace URL from arguments
-const workspaceUrl = process.argv[2];
+// Parse arguments
+function parseArgs() {
+  const args = process.argv.slice(2);
+  let workspaceUrl: string | undefined;
+  let port = 3001; // Default port
+
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === '--port' || args[i] === '-p') {
+      const portArg = parseInt(args[i + 1], 10);
+      if (!isNaN(portArg)) {
+        port = portArg;
+        i++;
+      }
+    } else if (!args[i].startsWith('-')) {
+      workspaceUrl = args[i];
+    }
+  }
+
+  // Also check environment variable for port
+  if (process.env.MCP_PORT) {
+    const envPort = parseInt(process.env.MCP_PORT, 10);
+    if (!isNaN(envPort)) {
+      port = envPort;
+    }
+  }
+
+  return { workspaceUrl, port };
+}
+
+const { workspaceUrl, port } = parseArgs();
+
 if (!workspaceUrl) {
-  console.error('Usage: takayaka-mcp <workspace-url>');
-  console.error('Example: takayaka-mcp http://localhost:3000/abc123-uuid-here');
+  console.error('Usage: takayaka-mcp <workspace-url> [--port <port>]');
+  console.error('Example: takayaka-mcp http://localhost:3000/abc123-uuid-here --port 3001');
+  console.error('');
+  console.error('Options:');
+  console.error('  --port, -p    Port for the MCP HTTP server (default: 3001)');
+  console.error('                Can also be set via MCP_PORT environment variable');
   process.exit(1);
 }
 
@@ -48,19 +82,6 @@ async function apiRequest<T>(method: string, path: string, body?: unknown): Prom
   }
   return response.json();
 }
-
-// Create MCP server
-const server = new Server(
-  {
-    name: 'takayaka',
-    version: '1.0.0',
-  },
-  {
-    capabilities: {
-      tools: {},
-    },
-  }
-);
 
 // Define tools
 const tools = [
@@ -310,178 +331,219 @@ const tools = [
   },
 ];
 
-// Handle list tools request
-server.setRequestHandler(ListToolsRequestSchema, async () => {
-  return { tools };
-});
+// Tool handler function
+async function handleToolCall(name: string, args: Record<string, unknown> | undefined): Promise<unknown> {
+  switch (name) {
+    // Project Management
+    case 'list_projects':
+      return apiRequest('GET', `/workspaces/${workspaceId}/projects`);
 
-// Handle tool calls
-server.setRequestHandler(CallToolRequestSchema, async (request) => {
-  const { name, arguments: args } = request.params;
+    case 'create_project':
+      return apiRequest('POST', `/workspaces/${workspaceId}/projects`, {
+        name: args?.name,
+        description: args?.description,
+      });
 
-  try {
-    let result: unknown;
+    case 'get_project':
+      return apiRequest('GET', `/projects/${args?.project_id}`);
 
-    switch (name) {
-      // Project Management
-      case 'list_projects':
-        result = await apiRequest('GET', `/workspaces/${workspaceId}/projects`);
-        break;
+    case 'update_project':
+      return apiRequest('PUT', `/projects/${args?.project_id}`, {
+        name: args?.name,
+        description: args?.description,
+      });
 
-      case 'create_project':
-        result = await apiRequest('POST', `/workspaces/${workspaceId}/projects`, {
-          name: args?.name,
-          description: args?.description,
-        });
-        break;
+    case 'delete_project':
+      await apiRequest('DELETE', `/projects/${args?.project_id}`);
+      return { success: true };
 
-      case 'get_project':
-        result = await apiRequest('GET', `/projects/${args?.project_id}`);
-        break;
+    // Column Management
+    case 'create_column':
+      return apiRequest('POST', `/projects/${args?.project_id}/columns`, {
+        name: args?.name,
+        position: args?.position,
+      });
 
-      case 'update_project':
-        result = await apiRequest('PUT', `/projects/${args?.project_id}`, {
-          name: args?.name,
-          description: args?.description,
-        });
-        break;
+    case 'rename_column':
+      return apiRequest('PUT', `/columns/${args?.column_id}`, {
+        project_id: args?.project_id,
+        name: args?.name,
+      });
 
-      case 'delete_project':
-        await apiRequest('DELETE', `/projects/${args?.project_id}`);
-        result = { success: true };
-        break;
+    case 'move_column':
+      return apiRequest('PUT', `/columns/${args?.column_id}`, {
+        project_id: args?.project_id,
+        position: args?.position,
+      });
 
-      // Column Management
-      case 'create_column':
-        result = await apiRequest('POST', `/projects/${args?.project_id}/columns`, {
-          name: args?.name,
-          position: args?.position,
-        });
-        break;
+    case 'delete_column':
+      await apiRequest('DELETE', `/columns/${args?.column_id}`, {
+        project_id: args?.project_id,
+      });
+      return { success: true };
 
-      case 'rename_column':
-        result = await apiRequest('PUT', `/columns/${args?.column_id}`, {
-          project_id: args?.project_id,
-          name: args?.name,
-        });
-        break;
+    // Card Management
+    case 'create_card':
+      return apiRequest('POST', `/columns/${args?.column_id}/cards`, {
+        project_id: args?.project_id,
+        title: args?.title,
+        description: args?.description,
+        position: args?.position,
+      });
 
-      case 'move_column':
-        result = await apiRequest('PUT', `/columns/${args?.column_id}`, {
-          project_id: args?.project_id,
-          position: args?.position,
-        });
-        break;
+    case 'move_card':
+      return apiRequest('PUT', `/cards/${args?.card_id}`, {
+        project_id: args?.project_id,
+        column_id: args?.column_id,
+        position: args?.position,
+      });
 
-      case 'delete_column':
-        await apiRequest('DELETE', `/columns/${args?.column_id}`, {
-          project_id: args?.project_id,
-        });
-        result = { success: true };
-        break;
+    case 'update_card':
+      return apiRequest('PUT', `/cards/${args?.card_id}`, {
+        project_id: args?.project_id,
+        title: args?.title,
+        description: args?.description,
+      });
 
-      // Card Management
-      case 'create_card':
-        result = await apiRequest('POST', `/columns/${args?.column_id}/cards`, {
-          project_id: args?.project_id,
-          title: args?.title,
-          description: args?.description,
-          position: args?.position,
-        });
-        break;
+    case 'delete_card':
+      await apiRequest('DELETE', `/cards/${args?.card_id}`, {
+        project_id: args?.project_id,
+      });
+      return { success: true };
 
-      case 'move_card':
-        result = await apiRequest('PUT', `/cards/${args?.card_id}`, {
-          project_id: args?.project_id,
-          column_id: args?.column_id,
-          position: args?.position,
-        });
-        break;
+    // Dependency Management
+    case 'add_dependency':
+      return apiRequest('POST', `/cards/${args?.card_id}/dependencies`, {
+        project_id: args?.project_id,
+        depends_on_card_id: args?.depends_on_card_id,
+      });
 
-      case 'update_card':
-        result = await apiRequest('PUT', `/cards/${args?.card_id}`, {
-          project_id: args?.project_id,
-          title: args?.title,
-          description: args?.description,
-        });
-        break;
+    case 'remove_dependency':
+      await apiRequest('DELETE', `/cards/${args?.card_id}/dependencies/${args?.depends_on_card_id}`, {
+        project_id: args?.project_id,
+      });
+      return { success: true };
 
-      case 'delete_card':
-        await apiRequest('DELETE', `/cards/${args?.card_id}`, {
-          project_id: args?.project_id,
-        });
-        result = { success: true };
-        break;
+    case 'get_card_dependencies':
+      return apiRequest('GET', `/cards/${args?.card_id}/dependencies?project_id=${args?.project_id}`);
 
-      // Dependency Management
-      case 'add_dependency':
-        result = await apiRequest('POST', `/cards/${args?.card_id}/dependencies`, {
-          project_id: args?.project_id,
-          depends_on_card_id: args?.depends_on_card_id,
-        });
-        break;
+    case 'get_card_dependents':
+      return apiRequest('GET', `/cards/${args?.card_id}/dependents?project_id=${args?.project_id}`);
 
-      case 'remove_dependency':
-        await apiRequest('DELETE', `/cards/${args?.card_id}/dependencies/${args?.depends_on_card_id}`, {
-          project_id: args?.project_id,
-        });
-        result = { success: true };
-        break;
-
-      case 'get_card_dependencies':
-        result = await apiRequest('GET', `/cards/${args?.card_id}/dependencies?project_id=${args?.project_id}`);
-        break;
-
-      case 'get_card_dependents':
-        result = await apiRequest('GET', `/cards/${args?.card_id}/dependents?project_id=${args?.project_id}`);
-        break;
-
-      // Event History
-      case 'get_project_history': {
-        const limitParam = args?.limit ? `?limit=${args.limit}` : '';
-        result = await apiRequest('GET', `/projects/${args?.project_id}/events${limitParam}`);
-        break;
-      }
-
-      case 'get_workspace_history': {
-        const limitParam = args?.limit ? `?limit=${args.limit}` : '';
-        result = await apiRequest('GET', `/workspaces/${workspaceId}/events${limitParam}`);
-        break;
-      }
-
-      default:
-        throw new Error(`Unknown tool: ${name}`);
+    // Event History
+    case 'get_project_history': {
+      const limitParam = args?.limit ? `?limit=${args.limit}` : '';
+      return apiRequest('GET', `/projects/${args?.project_id}/events${limitParam}`);
     }
 
-    return {
-      content: [
-        {
-          type: 'text',
-          text: JSON.stringify(result, null, 2),
-        },
-      ],
-    };
-  } catch (error) {
-    return {
-      content: [
-        {
-          type: 'text',
-          text: `Error: ${(error as Error).message}`,
-        },
-      ],
-      isError: true,
-    };
+    case 'get_workspace_history': {
+      const limitParam = args?.limit ? `?limit=${args.limit}` : '';
+      return apiRequest('GET', `/workspaces/${workspaceId}/events${limitParam}`);
+    }
+
+    default:
+      throw new Error(`Unknown tool: ${name}`);
   }
+}
+
+// Create Express app
+const app = express();
+
+// Store active transports by session ID
+const transports = new Map<string, SSEServerTransport>();
+
+// SSE endpoint for client connections
+app.get('/sse', async (req: Request, res: Response) => {
+  console.log('New SSE connection');
+
+  // Create MCP server for this connection
+  const server = new Server(
+    {
+      name: 'takayaka',
+      version: '1.0.0',
+    },
+    {
+      capabilities: {
+        tools: {},
+      },
+    }
+  );
+
+  // Handle list tools request
+  server.setRequestHandler(ListToolsRequestSchema, async () => {
+    return { tools };
+  });
+
+  // Handle tool calls
+  server.setRequestHandler(CallToolRequestSchema, async (request) => {
+    const { name, arguments: args } = request.params;
+
+    try {
+      const result = await handleToolCall(name, args as Record<string, unknown>);
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(result, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Error: ${(error as Error).message}`,
+          },
+        ],
+        isError: true,
+      };
+    }
+  });
+
+  // Create SSE transport
+  const transport = new SSEServerTransport('/message', res);
+  const sessionId = transport.sessionId;
+  transports.set(sessionId, transport);
+
+  // Clean up on close
+  res.on('close', () => {
+    console.log(`SSE connection closed: ${sessionId}`);
+    transports.delete(sessionId);
+  });
+
+  await server.connect(transport);
+});
+
+// Message endpoint for client-to-server messages
+app.post('/message', express.json(), async (req: Request, res: Response) => {
+  const sessionId = req.query.sessionId as string;
+  const transport = transports.get(sessionId);
+
+  if (!transport) {
+    res.status(404).json({ error: 'Session not found' });
+    return;
+  }
+
+  await transport.handlePostMessage(req, res);
+});
+
+// Health check endpoint
+app.get('/health', (_req: Request, res: Response) => {
+  res.json({
+    status: 'ok',
+    workspace: workspaceId,
+    apiBase
+  });
 });
 
 // Start server
-async function main() {
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
-  console.error(`TakaYaka MCP server started for workspace: ${workspaceId}`);
-}
-
-main().catch((error) => {
-  console.error('Fatal error:', error);
-  process.exit(1);
+app.listen(port, () => {
+  console.log(`TakaYaka MCP server started on port ${port}`);
+  console.log(`Workspace: ${workspaceId}`);
+  console.log(`API Base: ${apiBase}`);
+  console.log('');
+  console.log(`SSE endpoint: http://localhost:${port}/sse`);
+  console.log(`Message endpoint: http://localhost:${port}/message`);
 });
