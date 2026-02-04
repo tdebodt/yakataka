@@ -27,3 +27,10 @@ export interface Workspace {
   id: string;
   created_at: string;
 }
+
+export interface CardEvent {
+  id: number;
+  event_type: string;
+  event_data: Record<string, unknown>;
+  timestamp: string;
+}

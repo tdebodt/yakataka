@@ -188,13 +188,14 @@ export class ProjectAggregate {
     return this;
   }
 
-  private appendEvent(eventType: string, eventData: Record<string, unknown>): void {
+  private appendEvent(eventType: string, eventData: Record<string, unknown>, source?: string): void {
     this.version += 1;
+    const finalEventData = source ? { ...eventData, _source: source } : eventData;
     const event = {
       aggregate_type: 'project' as const,
       aggregate_id: this.projectId,
       event_type: eventType,
-      event_data: eventData,
+      event_data: finalEventData,
       version: this.version
     };
     eventStore.append(event);
@@ -278,7 +279,7 @@ export class ProjectAggregate {
   }
 
   // Card operations
-  addCard(columnId: string, title: string, description: string = '', position?: number): Card {
+  addCard(columnId: string, title: string, description: string = '', position?: number, source?: string): Card {
     if (!this.state.columns.has(columnId)) {
       throw new Error('Column not found');
     }
@@ -292,19 +293,19 @@ export class ProjectAggregate {
       description,
       position: pos
     };
-    this.appendEvent('CardAdded', data);
+    this.appendEvent('CardAdded', data, source);
     return this.state.cards.get(cardId)!;
   }
 
-  updateCard(cardId: string, updates: { title?: string; description?: string }): void {
+  updateCard(cardId: string, updates: { title?: string; description?: string }, source?: string): void {
     if (!this.state.cards.has(cardId)) {
       throw new Error('Card not found');
     }
     const data: CardUpdatedEvent['event_data'] = { card_id: cardId, ...updates };
-    this.appendEvent('CardUpdated', data);
+    this.appendEvent('CardUpdated', data, source);
   }
 
-  moveCard(cardId: string, columnId: string, position?: number): void {
+  moveCard(cardId: string, columnId: string, position?: number, source?: string): void {
     if (!this.state.cards.has(cardId)) {
       throw new Error('Card not found');
     }
@@ -314,25 +315,25 @@ export class ProjectAggregate {
     const cardsInColumn = [...this.state.cards.values()].filter(c => c.column_id === columnId && c.id !== cardId);
     const pos = position ?? cardsInColumn.length;
     const data: CardMovedEvent['event_data'] = { card_id: cardId, column_id: columnId, position: pos };
-    this.appendEvent('CardMoved', data);
+    this.appendEvent('CardMoved', data, source);
   }
 
-  deleteCard(cardId: string): void {
+  deleteCard(cardId: string, source?: string): void {
     if (!this.state.cards.has(cardId)) {
       throw new Error('Card not found');
     }
     // Remove dependencies referencing this card
     for (const card of this.state.cards.values()) {
       if (card.dependencies.includes(cardId)) {
-        this.removeDependency(card.id, cardId);
+        this.removeDependency(card.id, cardId, source);
       }
     }
     const data: CardDeletedEvent['event_data'] = { card_id: cardId };
-    this.appendEvent('CardDeleted', data);
+    this.appendEvent('CardDeleted', data, source);
   }
 
   // Dependency operations
-  addDependency(cardId: string, dependsOnCardId: string): void {
+  addDependency(cardId: string, dependsOnCardId: string, source?: string): void {
     if (!this.state.cards.has(cardId)) {
       throw new Error('Card not found');
     }
@@ -343,15 +344,15 @@ export class ProjectAggregate {
       throw new Error('Card cannot depend on itself');
     }
     const data: DependencyAddedEvent['event_data'] = { card_id: cardId, depends_on_card_id: dependsOnCardId };
-    this.appendEvent('DependencyAdded', data);
+    this.appendEvent('DependencyAdded', data, source);
   }
 
-  removeDependency(cardId: string, dependsOnCardId: string): void {
+  removeDependency(cardId: string, dependsOnCardId: string, source?: string): void {
     if (!this.state.cards.has(cardId)) {
       throw new Error('Card not found');
     }
     const data: DependencyRemovedEvent['event_data'] = { card_id: cardId, depends_on_card_id: dependsOnCardId };
-    this.appendEvent('DependencyRemoved', data);
+    this.appendEvent('DependencyRemoved', data, source);
   }
 
   // Queries

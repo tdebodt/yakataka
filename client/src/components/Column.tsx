@@ -14,6 +14,7 @@ interface ColumnProps {
   onUpdateCard: (cardId: string, updates: { title?: string; description?: string }) => void;
   onDeleteCard: (cardId: string) => void;
   onShowDependencies: (card: CardType) => void;
+  onShowHistory: (card: CardType) => void;
 }
 
 export function Column({
@@ -27,6 +28,7 @@ export function Column({
   onUpdateCard,
   onDeleteCard,
   onShowDependencies,
+  onShowHistory,
 }: ColumnProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(column.name);
@@ -176,6 +178,7 @@ export function Column({
                     onUpdate={(updates) => onUpdateCard(card.id, updates)}
                     onDelete={() => onDeleteCard(card.id)}
                     onShowDependencies={() => onShowDependencies(card)}
+                    onShowHistory={() => onShowHistory(card)}
                     hasDependencies={card.dependencies.length > 0}
                     hasUnresolvedDependencies={checkUnresolvedDependencies(card)}
                   />

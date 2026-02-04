@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import type { Project, Card, Column } from '../types';
+import type { Project, Card, Column, CardEvent } from '../types';
 
 const API_BASE = '/api';
 
@@ -22,6 +22,10 @@ async function fetchApi<T>(path: string, options?: RequestInit): Promise<T> {
   }
 
   return response.json();
+}
+
+export async function fetchCardHistory(projectId: string, cardId: string): Promise<CardEvent[]> {
+  return fetchApi<CardEvent[]>(`/cards/${cardId}/events?project_id=${projectId}`);
 }
 
 export function useWorkspace(workspaceId: string) {

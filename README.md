@@ -1,4 +1,4 @@
-# TakaYaka
+# YakaTaka
 
 A Trello-like Kanban board solution with web interface and MCP (Model Context Protocol) integration for Claude Code.
 
@@ -28,7 +28,7 @@ Then open http://localhost:5173 in your browser. You'll be redirected to a new w
 ## Project Structure
 
 ```
-takayaka/
+yakataka/
 ├── server/         # Express backend with SQLite event store
 ├── client/         # React + Vite + Tailwind frontend
 └── mcp-server/     # MCP server for Claude Code integration
@@ -36,12 +36,12 @@ takayaka/
 
 ## MCP Integration
 
-To use TakaYaka with Claude Code:
+To use YakaTaka with Claude Code:
 
 1. Start the server: `npm run dev:server`
 2. Open the web UI and create a workspace
 3. Copy the MCP command from the Settings panel
-4. Run the command to add TakaYaka to Claude Code
+4. Run the command to add YakaTaka to Claude Code
 
 ### Available MCP Tools
 
@@ -82,7 +82,7 @@ To use TakaYaka with Claude Code:
 
 ## Architecture
 
-TakaYaka uses **Event Sourcing** with **Domain-Driven Design**:
+YakaTaka uses **Event Sourcing** with **Domain-Driven Design**:
 
 - **Workspace Aggregate**: Manages workspace metadata
 - **Project Aggregate**: Manages projects, columns, cards, and dependencies

@@ -47,6 +47,17 @@ export class EventStore {
     AND json_extract(event_data, '$.workspace_id') = ?
   `);
 
+  private getCardEventsStmt = db.prepare(`
+    SELECT * FROM events
+    WHERE aggregate_type = 'project'
+    AND aggregate_id = ?
+    AND (
+      json_extract(event_data, '$.card_id') = ?
+      OR json_extract(event_data, '$.depends_on_card_id') = ?
+    )
+    ORDER BY timestamp DESC
+  `);
+
   append(event: Omit<BaseEvent, 'id' | 'timestamp'>): BaseEvent {
     const timestamp = new Date().toISOString();
 
@@ -91,6 +102,12 @@ export class EventStore {
   getProjectIdsByWorkspace(workspaceId: string): string[] {
     const rows = this.getProjectIdsByWorkspaceStmt.all(workspaceId) as { aggregate_id: string }[];
     return rows.map(r => r.aggregate_id);
+  }
+
+  getCardEvents(projectId: string, cardId: string, limit?: number): DomainEvent[] {
+    const rows = this.getCardEventsStmt.all(projectId, cardId, cardId) as EventRow[];
+    const events = rows.map(this.rowToEvent);
+    return limit ? events.slice(0, limit) : events;
   }
 
   private rowToEvent(row: EventRow): DomainEvent {

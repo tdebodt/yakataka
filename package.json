@@ -1,17 +1,18 @@
 {
-  "name": "takayaka",
+  "name": "yakataka",
   "version": "1.0.0",
   "private": true,
-  "description": "TakaYaka - Kanban board solution with MCP integration",
+  "description": "YakaTaka - Kanban board solution with MCP integration",
   "workspaces": [
     "server",
     "client",
     "mcp-server"
   ],
   "scripts": {
-    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\" \"npm run dev:mcp\"",
     "dev:server": "npm run dev --workspace=server",
     "dev:client": "npm run dev --workspace=client",
+    "dev:mcp": "npm run dev --workspace=mcp-server",
     "build": "npm run build --workspaces",
     "build:server": "npm run build --workspace=server",
     "build:client": "npm run build --workspace=client",

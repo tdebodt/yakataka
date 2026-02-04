@@ -1,8 +1,8 @@
-# TakaYaka - Claude Code Context
+# YakaTaka - Claude Code Context
 
 ## Project Overview
 
-TakaYaka is a Kanban board application with MCP integration. It uses event sourcing architecture with two aggregate roots: Workspace and Project.
+YakaTaka is a Kanban board application with MCP integration. It uses event sourcing architecture with two aggregate roots: Workspace and Project.
 
 ## Quick Commands
 
@@ -10,7 +10,7 @@ TakaYaka is a Kanban board application with MCP integration. It uses event sourc
 # Install dependencies
 npm install
 
-# Development (runs both server and client)
+# Development (runs backend, frontend, and MCP server)
 npm run dev
 
 # Run only server (port 3000)
@@ -26,7 +26,7 @@ npm run build
 ## Project Structure
 
 ```
-takayaka/
+yakataka/
 ├── server/                 # Express backend
 │   └── src/
 │       ├── index.ts        # Server entry point
@@ -85,28 +85,29 @@ All state changes are stored as events in SQLite. State is reconstructed by repl
 
 ## MCP Server
 
-The MCP server runs on HTTP with SSE transport. Start it with:
-```bash
-# Default port 3001
-node mcp-server/dist/index.js http://localhost:3000/{workspace-uuid}
+The MCP server uses Streamable HTTP transport (MCP protocol 2025-03-26) and supports any workspace. It starts automatically with `npm run dev` on port 3002.
 
+To connect Claude Code to a specific workspace:
+```bash
+claude mcp add yakataka --transport http http://localhost:3002/mcp/{workspace-id}
+```
+
+The workspace ID is the UUID in the browser URL (e.g., `http://localhost:5173/abc123-def456-...`).
+
+### Manual MCP Server Options
+```bash
 # Custom port
-node mcp-server/dist/index.js http://localhost:3000/{workspace-uuid} --port 4000
+node mcp-server/dist/index.js --port 4000
 
-# Or via environment variable
-MCP_PORT=4000 node mcp-server/dist/index.js http://localhost:3000/{workspace-uuid}
+# Custom backend URL
+node mcp-server/dist/index.js --backend http://other-host:3000
 ```
 
-Then add to Claude Code:
-```bash
-claude mcp add takayaka --transport sse http://localhost:3001/sse
-```
-
-It provides 18 tools for managing projects, columns, cards, and dependencies.
+It provides 19 tools for managing projects, columns, cards, and dependencies.
 
 ## Database
 
-SQLite database stored at `server/data/takayaka.db`. Uses WAL mode for performance.
+SQLite database stored at `server/data/yakataka.db`. Uses WAL mode for performance.
 
 ## Testing the API
 

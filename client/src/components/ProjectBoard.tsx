@@ -2,6 +2,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { DragDropContext, Droppable, DropResult } from '@hello-pangea/dnd';
 import { Column } from './Column';
 import { DependencyModal } from './DependencyModal';
+import { CardHistoryModal } from './CardHistoryModal';
 import { CopyMcpCommand } from './CopyMcpCommand';
 import { Button } from './Button';
 import { Input } from './Input';
@@ -47,6 +48,7 @@ export function ProjectBoard({
   const [isAddingColumn, setIsAddingColumn] = useState(false);
   const [newColumnName, setNewColumnName] = useState('');
   const [dependencyCard, setDependencyCard] = useState<CardType | null>(null);
+  const [historyCard, setHistoryCard] = useState<CardType | null>(null);
 
   // Build a map of all cards for quick lookup
   const allCards = useMemo(() => {
@@ -170,6 +172,7 @@ export function ProjectBoard({
                       onUpdateCard={onUpdateCard}
                       onDeleteCard={onDeleteCard}
                       onShowDependencies={setDependencyCard}
+                      onShowHistory={setHistoryCard}
                     />
                   ))}
                 {provided.placeholder}
@@ -284,6 +287,14 @@ export function ProjectBoard({
             onRemoveDependency(dependencyCard.id, depId);
           }
         }}
+      />
+
+      {/* History Modal */}
+      <CardHistoryModal
+        isOpen={historyCard !== null}
+        onClose={() => setHistoryCard(null)}
+        card={historyCard}
+        projectId={project.id}
       />
     </div>
   );

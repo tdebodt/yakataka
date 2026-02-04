@@ -1,17 +1,12 @@
 #!/usr/bin/env node
-import { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
-import {
-  CallToolRequestSchema,
-  ListToolsRequestSchema,
-} from '@modelcontextprotocol/sdk/types.js';
 import express, { Request, Response } from 'express';
+import { randomUUID } from 'crypto';
 
 // Parse arguments
 function parseArgs() {
   const args = process.argv.slice(2);
-  let workspaceUrl: string | undefined;
-  let port = 3001; // Default port
+  let backendUrl = 'http://localhost:3000'; // Default backend URL
+  let port = 3002; // Default port
 
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--port' || args[i] === '-p') {
@@ -20,43 +15,30 @@ function parseArgs() {
         port = portArg;
         i++;
       }
+    } else if (args[i] === '--backend' || args[i] === '-b') {
+      backendUrl = args[i + 1];
+      i++;
     } else if (!args[i].startsWith('-')) {
-      workspaceUrl = args[i];
+      backendUrl = args[i];
     }
   }
 
-  // Also check environment variable for port
+  // Also check environment variables
   if (process.env.MCP_PORT) {
     const envPort = parseInt(process.env.MCP_PORT, 10);
     if (!isNaN(envPort)) {
       port = envPort;
     }
   }
+  if (process.env.TAKAYAKA_BACKEND) {
+    backendUrl = process.env.TAKAYAKA_BACKEND;
+  }
 
-  return { workspaceUrl, port };
+  return { backendUrl, port };
 }
 
-const { workspaceUrl, port } = parseArgs();
-
-if (!workspaceUrl) {
-  console.error('Usage: takayaka-mcp <workspace-url> [--port <port>]');
-  console.error('Example: takayaka-mcp http://localhost:3000/abc123-uuid-here --port 3001');
-  console.error('');
-  console.error('Options:');
-  console.error('  --port, -p    Port for the MCP HTTP server (default: 3001)');
-  console.error('                Can also be set via MCP_PORT environment variable');
-  process.exit(1);
-}
-
-// Extract base URL and workspace ID from the URL
-const urlMatch = workspaceUrl.match(/^(https?:\/\/[^\/]+)\/([a-f0-9-]+)$/i);
-if (!urlMatch) {
-  console.error('Invalid workspace URL format. Expected: http://localhost:3000/{workspace-uuid}');
-  process.exit(1);
-}
-
-const [, baseUrl, workspaceId] = urlMatch;
-const apiBase = `${baseUrl}/api`;
+const { backendUrl, port } = parseArgs();
+const apiBase = `${backendUrl}/api`;
 
 // API helper functions
 async function apiRequest<T>(method: string, path: string, body?: unknown): Promise<T> {
@@ -65,6 +47,7 @@ async function apiRequest<T>(method: string, path: string, body?: unknown): Prom
     method,
     headers: {
       'Content-Type': 'application/json',
+      'X-Source': 'mcp',
     },
   };
   if (body) {
@@ -329,10 +312,23 @@ const tools = [
       required: [],
     },
   },
+  {
+    name: 'get_card_history',
+    description: 'Get event history for a specific card',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        project_id: { type: 'string', description: 'Project ID' },
+        card_id: { type: 'string', description: 'Card ID' },
+        limit: { type: 'number', description: 'Maximum number of events to return' },
+      },
+      required: ['project_id', 'card_id'],
+    },
+  },
 ];
 
-// Tool handler function
-async function handleToolCall(name: string, args: Record<string, unknown> | undefined): Promise<unknown> {
+// Tool handler function - takes workspaceId as parameter
+async function handleToolCall(workspaceId: string, name: string, args: Record<string, unknown> | undefined): Promise<unknown> {
   switch (name) {
     // Project Management
     case 'list_projects':
@@ -441,6 +437,14 @@ async function handleToolCall(name: string, args: Record<string, unknown> | unde
       return apiRequest('GET', `/workspaces/${workspaceId}/events${limitParam}`);
     }
 
+    case 'get_card_history': {
+      const params = new URLSearchParams({ project_id: args?.project_id as string });
+      if (args?.limit) {
+        params.append('limit', String(args.limit));
+      }
+      return apiRequest('GET', `/cards/${args?.card_id}/events?${params}`);
+    }
+
     default:
       throw new Error(`Unknown tool: ${name}`);
   }
@@ -449,101 +453,302 @@ async function handleToolCall(name: string, args: Record<string, unknown> | unde
 // Create Express app
 const app = express();
 
-// Store active transports by session ID
-const transports = new Map<string, SSEServerTransport>();
+// Handle CORS preflight and enable CORS
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Accept, mcp-session-id');
+  res.header('Access-Control-Expose-Headers', 'mcp-session-id');
 
-// SSE endpoint for client connections
-app.get('/sse', async (req: Request, res: Response) => {
-  console.log('New SSE connection');
-
-  // Create MCP server for this connection
-  const server = new Server(
-    {
-      name: 'takayaka',
-      version: '1.0.0',
-    },
-    {
-      capabilities: {
-        tools: {},
-      },
-    }
-  );
-
-  // Handle list tools request
-  server.setRequestHandler(ListToolsRequestSchema, async () => {
-    return { tools };
-  });
-
-  // Handle tool calls
-  server.setRequestHandler(CallToolRequestSchema, async (request) => {
-    const { name, arguments: args } = request.params;
-
-    try {
-      const result = await handleToolCall(name, args as Record<string, unknown>);
-
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(result, null, 2),
-          },
-        ],
-      };
-    } catch (error) {
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `Error: ${(error as Error).message}`,
-          },
-        ],
-        isError: true,
-      };
-    }
-  });
-
-  // Create SSE transport
-  const transport = new SSEServerTransport('/message', res);
-  const sessionId = transport.sessionId;
-  transports.set(sessionId, transport);
-
-  // Clean up on close
-  res.on('close', () => {
-    console.log(`SSE connection closed: ${sessionId}`);
-    transports.delete(sessionId);
-  });
-
-  await server.connect(transport);
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(204);
+    return;
+  }
+  next();
 });
 
-// Message endpoint for client-to-server messages
-app.post('/message', express.json(), async (req: Request, res: Response) => {
-  const sessionId = req.query.sessionId as string;
-  const transport = transports.get(sessionId);
+// Store sessions with workspace context
+interface Session {
+  workspaceId: string;
+  createdAt: Date;
+}
 
-  if (!transport) {
-    res.status(404).json({ error: 'Session not found' });
+const sessions = new Map<string, Session>();
+
+// Server info for MCP protocol
+const SERVER_INFO = {
+  name: 'yakataka',
+  version: '1.0.0',
+};
+
+const SERVER_CAPABILITIES = {
+  tools: {},
+};
+
+const PROTOCOL_VERSION = '2025-03-26';
+
+// JSON-RPC types
+interface JsonRpcRequest {
+  jsonrpc: '2.0';
+  id?: number | string;
+  method: string;
+  params?: Record<string, unknown>;
+}
+
+interface JsonRpcResponse {
+  jsonrpc: '2.0';
+  id?: number | string;
+  result?: unknown;
+  error?: {
+    code: number;
+    message: string;
+    data?: unknown;
+  };
+}
+
+// Handle MCP JSON-RPC methods
+async function handleMcpMethod(
+  method: string,
+  params: Record<string, unknown> | undefined,
+  workspaceId: string
+): Promise<unknown> {
+  switch (method) {
+    case 'initialize':
+      return {
+        protocolVersion: PROTOCOL_VERSION,
+        capabilities: SERVER_CAPABILITIES,
+        serverInfo: SERVER_INFO,
+      };
+
+    case 'tools/list':
+      return { tools };
+
+    case 'tools/call': {
+      const toolName = params?.name as string;
+      const toolArgs = params?.arguments as Record<string, unknown> | undefined;
+
+      if (!toolName) {
+        throw { code: -32602, message: 'Missing tool name' };
+      }
+
+      const tool = tools.find((t) => t.name === toolName);
+      if (!tool) {
+        throw { code: -32602, message: `Unknown tool: ${toolName}` };
+      }
+
+      try {
+        const result = await handleToolCall(workspaceId, toolName, toolArgs);
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Error: ${(error as Error).message}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    }
+
+    case 'ping':
+      return {};
+
+    default:
+      throw { code: -32601, message: `Method not found: ${method}` };
+  }
+}
+
+// Parse JSON body middleware
+app.use('/mcp/:workspaceId', express.json());
+
+// MCP endpoint - workspace ID in URL path
+app.all('/mcp/:workspaceId', async (req: Request, res: Response) => {
+  const { workspaceId } = req.params;
+
+  if (!workspaceId || !/^[a-f0-9-]+$/i.test(workspaceId)) {
+    res.status(400).json({ error: 'Invalid workspace ID' });
     return;
   }
 
-  await transport.handlePostMessage(req, res);
+  // Handle GET for SSE connections (not used by Claude Code for Streamable HTTP)
+  if (req.method === 'GET') {
+    res.status(405).json({
+      jsonrpc: '2.0',
+      error: {
+        code: -32600,
+        message: 'GET not supported. Use POST for MCP requests.',
+      },
+    });
+    return;
+  }
+
+  // Handle DELETE to close sessions
+  if (req.method === 'DELETE') {
+    const sessionId = req.headers['mcp-session-id'] as string | undefined;
+    if (sessionId && sessions.has(sessionId)) {
+      sessions.delete(sessionId);
+      console.log(`Session deleted: ${sessionId}`);
+    }
+    res.status(204).send();
+    return;
+  }
+
+  // Only POST allowed from here
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+
+  // Get session ID from header
+  let sessionId = req.headers['mcp-session-id'] as string | undefined;
+  let session = sessionId ? sessions.get(sessionId) : undefined;
+
+  // Parse the JSON-RPC request
+  const body = req.body as JsonRpcRequest | JsonRpcRequest[];
+
+  // Handle single request
+  if (!Array.isArray(body)) {
+    const request = body;
+
+    // Handle 'initialized' notification (no id means notification)
+    if (request.method === 'initialized' && request.id === undefined) {
+      res.status(202).send();
+      return;
+    }
+
+    // Handle 'notifications/cancelled' notification
+    if (request.method === 'notifications/cancelled' && request.id === undefined) {
+      res.status(202).send();
+      return;
+    }
+
+    // For initialize request, create a new session
+    if (request.method === 'initialize') {
+      sessionId = randomUUID();
+      session = { workspaceId, createdAt: new Date() };
+      sessions.set(sessionId, session);
+      console.log(`New session: ${sessionId} (workspace: ${workspaceId})`);
+    }
+
+    // Session required for non-initialize requests
+    if (request.method !== 'initialize' && !session) {
+      const response: JsonRpcResponse = {
+        jsonrpc: '2.0',
+        id: request.id,
+        error: {
+          code: -32600,
+          message: 'Session not initialized. Send initialize request first.',
+        },
+      };
+      res.status(400).json(response);
+      return;
+    }
+
+    // Execute the method
+    try {
+      const effectiveWorkspaceId = session?.workspaceId || workspaceId;
+      const result = await handleMcpMethod(request.method, request.params, effectiveWorkspaceId);
+
+      const response: JsonRpcResponse = {
+        jsonrpc: '2.0',
+        id: request.id,
+        result,
+      };
+
+      // Set session ID header for initialize response
+      if (request.method === 'initialize' && sessionId) {
+        res.setHeader('Mcp-Session-Id', sessionId);
+      }
+
+      res.json(response);
+    } catch (error) {
+      const rpcError = error as { code?: number; message?: string };
+      const response: JsonRpcResponse = {
+        jsonrpc: '2.0',
+        id: request.id,
+        error: {
+          code: rpcError.code || -32603,
+          message: rpcError.message || 'Internal error',
+        },
+      };
+      res.status(200).json(response);
+    }
+    return;
+  }
+
+  // Handle batch requests
+  const responses: JsonRpcResponse[] = [];
+
+  for (const request of body) {
+    // Skip notifications in batch
+    if (request.id === undefined) {
+      continue;
+    }
+
+    try {
+      const effectiveWorkspaceId = session?.workspaceId || workspaceId;
+      const result = await handleMcpMethod(request.method, request.params, effectiveWorkspaceId);
+      responses.push({
+        jsonrpc: '2.0',
+        id: request.id,
+        result,
+      });
+    } catch (error) {
+      const rpcError = error as { code?: number; message?: string };
+      responses.push({
+        jsonrpc: '2.0',
+        id: request.id,
+        error: {
+          code: rpcError.code || -32603,
+          message: rpcError.message || 'Internal error',
+        },
+      });
+    }
+  }
+
+  if (responses.length === 0) {
+    res.status(202).send();
+  } else {
+    res.json(responses);
+  }
 });
 
 // Health check endpoint
 app.get('/health', (_req: Request, res: Response) => {
   res.json({
     status: 'ok',
-    workspace: workspaceId,
-    apiBase
+    backend: backendUrl,
+    activeSessions: sessions.size,
+  });
+});
+
+// List active workspaces
+app.get('/workspaces', (_req: Request, res: Response) => {
+  const workspaces = new Set<string>();
+  for (const [, session] of sessions) {
+    workspaces.add(session.workspaceId);
+  }
+  res.json({
+    workspaces: Array.from(workspaces),
   });
 });
 
 // Start server
 app.listen(port, () => {
   console.log(`TakaYaka MCP server started on port ${port}`);
-  console.log(`Workspace: ${workspaceId}`);
-  console.log(`API Base: ${apiBase}`);
+  console.log(`Backend: ${backendUrl}`);
   console.log('');
-  console.log(`SSE endpoint: http://localhost:${port}/sse`);
-  console.log(`Message endpoint: http://localhost:${port}/message`);
+  console.log(`MCP endpoint: http://localhost:${port}/mcp/{workspace-id}`);
+  console.log('');
+  console.log('To connect Claude Code to a workspace:');
+  console.log(`  claude mcp add yakataka --transport http http://localhost:${port}/mcp/{workspace-id}`);
 });

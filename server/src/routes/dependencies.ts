@@ -53,6 +53,7 @@ router.get('/cards/:id/dependents', (req, res) => {
 // Add dependency
 router.post('/cards/:id/dependencies', (req, res) => {
   const { depends_on_card_id, project_id } = req.body;
+  const source = (req as any).source;
   if (!depends_on_card_id) {
     return res.status(400).json({ error: 'depends_on_card_id is required' });
   }
@@ -73,7 +74,7 @@ router.post('/cards/:id/dependencies', (req, res) => {
   }
 
   try {
-    aggregate.addDependency(req.params.id, depends_on_card_id);
+    aggregate.addDependency(req.params.id, depends_on_card_id, source);
     res.status(201).json(aggregate.getCard(req.params.id));
   } catch (err) {
     res.status(400).json({ error: (err as Error).message });
@@ -83,6 +84,7 @@ router.post('/cards/:id/dependencies', (req, res) => {
 // Remove dependency
 router.delete('/cards/:id/dependencies/:dependsOnId', (req, res) => {
   const { project_id } = req.body;
+  const source = (req as any).source;
   if (!project_id) {
     return res.status(400).json({ error: 'project_id is required' });
   }
@@ -95,7 +97,7 @@ router.delete('/cards/:id/dependencies/:dependsOnId', (req, res) => {
     return res.status(404).json({ error: 'Card not found' });
   }
 
-  aggregate.removeDependency(req.params.id, req.params.dependsOnId);
+  aggregate.removeDependency(req.params.id, req.params.dependsOnId, source);
   res.status(204).send();
 });
 

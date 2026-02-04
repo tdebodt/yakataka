@@ -8,6 +8,7 @@ interface CardProps {
   onUpdate: (updates: { title?: string; description?: string }) => void;
   onDelete: () => void;
   onShowDependencies: () => void;
+  onShowHistory: () => void;
   hasDependencies: boolean;
   hasUnresolvedDependencies: boolean;
 }
@@ -18,6 +19,7 @@ export function Card({
   onUpdate,
   onDelete,
   onShowDependencies,
+  onShowHistory,
   hasDependencies,
   hasUnresolvedDependencies,
 }: CardProps) {
@@ -153,6 +155,15 @@ export function Card({
                         className="w-full px-3 py-1.5 text-left text-sm hover:bg-gray-100"
                       >
                         Dependencies
+                      </button>
+                      <button
+                        onClick={() => {
+                          onShowHistory();
+                          setShowMenu(false);
+                        }}
+                        className="w-full px-3 py-1.5 text-left text-sm hover:bg-gray-100"
+                      >
+                        History
                       </button>
                       <button
                         onClick={() => {

@@ -18,6 +18,12 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
+// Extract X-Source header for event tracking
+app.use((req, res, next) => {
+  (req as any).source = req.headers['x-source'] as string | undefined;
+  next();
+});
+
 // API Routes
 app.use('/api/workspaces', workspacesRouter);
 app.use('/api', projectsRouter);
