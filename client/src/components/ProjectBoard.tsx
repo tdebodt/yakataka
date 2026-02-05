@@ -11,7 +11,6 @@ import type { Project, Card as CardType } from '../types';
 
 interface ProjectBoardProps {
   project: Project;
-  workspaceId: string;
   onUpdateProject: (updates: { name?: string; description?: string }) => void;
   onDeleteProject: () => void;
   onAddColumn: (name: string) => void;
@@ -28,7 +27,6 @@ interface ProjectBoardProps {
 
 export function ProjectBoard({
   project,
-  workspaceId,
   onUpdateProject,
   onDeleteProject,
   onAddColumn,
@@ -249,7 +247,7 @@ export function ProjectBoard({
           </div>
 
           <div className="border-t pt-4">
-            <CopyMcpCommand workspaceId={workspaceId} />
+            <CopyMcpCommand projectId={project.id} />
           </div>
 
           <div className="border-t pt-4">

@@ -1,3 +1,4 @@
+
 # YakaTaka
 
 A Trello-like Kanban board solution with web interface and MCP (Model Context Protocol) integration for Claude Code.
@@ -43,36 +44,26 @@ To use YakaTaka with Claude Code:
 3. Copy the MCP command from the Settings panel
 4. Run the command to add YakaTaka to Claude Code
 
-### Available MCP Tools
+### Available MCP Tools (11 tools)
 
-**Project Management**
-- `list_projects` - List all projects
-- `create_project` - Create a new project
-- `get_project` - Get project with columns and cards
-- `update_project` - Update project details
-- `delete_project` - Delete a project
+**Board Overview**
+- `get_project` - Get the Kanban board with all tasks and workflow statuses
 
-**Column Management**
-- `create_column` - Add a status column
-- `rename_column` - Rename a column
-- `move_column` - Reorder columns
-- `delete_column` - Delete a column
-
-**Card Management**
-- `create_card` - Create a card
-- `move_card` - Move card to different column/position
-- `update_card` - Update card details
-- `delete_card` - Delete a card
+**Task Management**
+- `create_card` - Create a new task in a workflow status
+- `move_card` - Move a task to a different workflow status
+- `update_card` - Update a task's title and/or description
+- `delete_card` - Delete a task from the board
 
 **Dependency Management**
-- `add_dependency` - Add a card dependency
-- `remove_dependency` - Remove a dependency
-- `get_card_dependencies` - Get cards this card depends on
-- `get_card_dependents` - Get cards that depend on this card
+- `add_dependency` - Mark a task as blocked by another task
+- `remove_dependency` - Remove a blocker from a task
+- `get_card_dependencies` - Get the tasks that are blocking this task
+- `get_card_dependents` - Get the tasks that are blocked by this task
 
 **Event History**
-- `get_project_history` - Get project event history
-- `get_workspace_history` - Get workspace event history
+- `get_history` - Get the history of changes to the board
+- `get_card_history` - Get the history of changes to a specific task
 
 ## Tech Stack
 

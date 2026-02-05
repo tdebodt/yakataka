@@ -1,14 +1,14 @@
 import { useState } from 'react';
 
 interface CopyMcpCommandProps {
-  workspaceId: string;
+  projectId: string;
 }
 
-export function CopyMcpCommand({ workspaceId }: CopyMcpCommandProps) {
+export function CopyMcpCommand({ projectId }: CopyMcpCommandProps) {
   const [copied, setCopied] = useState(false);
 
   const mcpPort = 3002;
-  const mcpCommand = `claude mcp add yakataka --transport http http://localhost:${mcpPort}/mcp/${workspaceId}`;
+  const mcpCommand = `claude mcp add yakataka --transport http http://localhost:${mcpPort}/mcp/${projectId}`;
 
   const handleCopy = async () => {
     try {
@@ -24,7 +24,7 @@ export function CopyMcpCommand({ workspaceId }: CopyMcpCommandProps) {
     <div className="p-4 bg-gray-50 rounded-lg border space-y-3">
       <div className="flex items-center justify-between">
         <h4 className="text-sm font-medium text-gray-700">
-          Connect Claude Code to this workspace
+          Connect Claude Code to this project
         </h4>
         <button
           onClick={handleCopy}

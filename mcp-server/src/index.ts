@@ -66,244 +66,124 @@ async function apiRequest<T>(method: string, path: string, body?: unknown): Prom
   return response.json();
 }
 
-// Define tools
+// Define tools (project-scoped - no project_id param needed)
 const tools = [
   // Project Management
   {
-    name: 'list_projects',
-    description: 'List all projects in the workspace',
+    name: 'get_project',
+    description: 'Get the Kanban board showing all tasks organized by workflow status, including task dependencies (blockers)',
     inputSchema: {
       type: 'object',
       properties: {},
       required: [],
     },
   },
-  {
-    name: 'create_project',
-    description: 'Create a new project with default columns (To Do, In Progress, Done)',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        name: { type: 'string', description: 'Project name' },
-        description: { type: 'string', description: 'Project description (optional)' },
-      },
-      required: ['name'],
-    },
-  },
-  {
-    name: 'get_project',
-    description: 'Get a project with all its columns, cards, and dependencies',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        project_id: { type: 'string', description: 'Project ID' },
-      },
-      required: ['project_id'],
-    },
-  },
-  {
-    name: 'update_project',
-    description: 'Update a project name and/or description',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        project_id: { type: 'string', description: 'Project ID' },
-        name: { type: 'string', description: 'New project name' },
-        description: { type: 'string', description: 'New project description' },
-      },
-      required: ['project_id'],
-    },
-  },
-  {
-    name: 'delete_project',
-    description: 'Delete a project',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        project_id: { type: 'string', description: 'Project ID' },
-      },
-      required: ['project_id'],
-    },
-  },
 
-  // Column Management
-  {
-    name: 'create_column',
-    description: 'Add a new status column to a project',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        project_id: { type: 'string', description: 'Project ID' },
-        name: { type: 'string', description: 'Column name' },
-        position: { type: 'number', description: 'Position (optional, defaults to end)' },
-      },
-      required: ['project_id', 'name'],
-    },
-  },
-  {
-    name: 'rename_column',
-    description: 'Rename a status column',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        project_id: { type: 'string', description: 'Project ID' },
-        column_id: { type: 'string', description: 'Column ID' },
-        name: { type: 'string', description: 'New column name' },
-      },
-      required: ['project_id', 'column_id', 'name'],
-    },
-  },
-  {
-    name: 'move_column',
-    description: 'Reorder a status column',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        project_id: { type: 'string', description: 'Project ID' },
-        column_id: { type: 'string', description: 'Column ID' },
-        position: { type: 'number', description: 'New position (0-indexed)' },
-      },
-      required: ['project_id', 'column_id', 'position'],
-    },
-  },
-  {
-    name: 'delete_column',
-    description: 'Delete a column (moves cards to first column)',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        project_id: { type: 'string', description: 'Project ID' },
-        column_id: { type: 'string', description: 'Column ID' },
-      },
-      required: ['project_id', 'column_id'],
-    },
-  },
-
-  // Card Management
+  // Task Management
   {
     name: 'create_card',
-    description: 'Create a card in a column',
+    description: 'Create a new task in a workflow status',
     inputSchema: {
       type: 'object',
       properties: {
-        project_id: { type: 'string', description: 'Project ID' },
-        column_id: { type: 'string', description: 'Column ID' },
-        title: { type: 'string', description: 'Card title' },
-        description: { type: 'string', description: 'Card description (optional)' },
-        position: { type: 'number', description: 'Position within column (optional)' },
+        column_id: { type: 'string', description: 'ID of the workflow status' },
+        title: { type: 'string', description: 'Task title' },
+        description: { type: 'string', description: 'Task description (optional)' },
+        position: { type: 'number', description: 'Position within the status (0 = top)' },
       },
-      required: ['project_id', 'column_id', 'title'],
+      required: ['column_id', 'title'],
     },
   },
   {
     name: 'move_card',
-    description: 'Move a card to a different column and/or position',
+    description: "Move a task to a different workflow status (e.g., from 'To Do' to 'In Progress')",
     inputSchema: {
       type: 'object',
       properties: {
-        project_id: { type: 'string', description: 'Project ID' },
-        card_id: { type: 'string', description: 'Card ID' },
-        column_id: { type: 'string', description: 'Target column ID' },
-        position: { type: 'number', description: 'Target position (optional)' },
+        card_id: { type: 'string', description: 'ID of the task' },
+        column_id: { type: 'string', description: 'ID of the target workflow status' },
+        position: { type: 'number', description: 'Position within the status (0 = top)' },
       },
-      required: ['project_id', 'card_id', 'column_id'],
+      required: ['card_id', 'column_id'],
     },
   },
   {
     name: 'update_card',
-    description: 'Update card title and/or description',
+    description: "Update a task's title and/or description",
     inputSchema: {
       type: 'object',
       properties: {
-        project_id: { type: 'string', description: 'Project ID' },
-        card_id: { type: 'string', description: 'Card ID' },
-        title: { type: 'string', description: 'New card title' },
-        description: { type: 'string', description: 'New card description' },
+        card_id: { type: 'string', description: 'ID of the task' },
+        title: { type: 'string', description: 'New task title' },
+        description: { type: 'string', description: 'New task description' },
       },
-      required: ['project_id', 'card_id'],
+      required: ['card_id'],
     },
   },
   {
     name: 'delete_card',
-    description: 'Delete a card',
+    description: 'Delete a task from the board',
     inputSchema: {
       type: 'object',
       properties: {
-        project_id: { type: 'string', description: 'Project ID' },
-        card_id: { type: 'string', description: 'Card ID' },
+        card_id: { type: 'string', description: 'ID of the task' },
       },
-      required: ['project_id', 'card_id'],
+      required: ['card_id'],
     },
   },
 
   // Dependency Management
   {
     name: 'add_dependency',
-    description: 'Add a dependency (card depends on another card)',
+    description: 'Mark a task as blocked by another task (the blocking task must be completed first)',
     inputSchema: {
       type: 'object',
       properties: {
-        project_id: { type: 'string', description: 'Project ID' },
-        card_id: { type: 'string', description: 'Card ID' },
-        depends_on_card_id: { type: 'string', description: 'ID of the card this card depends on' },
+        card_id: { type: 'string', description: 'ID of the task' },
+        depends_on_card_id: { type: 'string', description: 'ID of the blocking task' },
       },
-      required: ['project_id', 'card_id', 'depends_on_card_id'],
+      required: ['card_id', 'depends_on_card_id'],
     },
   },
   {
     name: 'remove_dependency',
-    description: 'Remove a dependency',
+    description: 'Remove a blocker from a task',
     inputSchema: {
       type: 'object',
       properties: {
-        project_id: { type: 'string', description: 'Project ID' },
-        card_id: { type: 'string', description: 'Card ID' },
-        depends_on_card_id: { type: 'string', description: 'ID of the dependency to remove' },
+        card_id: { type: 'string', description: 'ID of the task' },
+        depends_on_card_id: { type: 'string', description: 'ID of the blocking task to remove' },
       },
-      required: ['project_id', 'card_id', 'depends_on_card_id'],
+      required: ['card_id', 'depends_on_card_id'],
     },
   },
   {
     name: 'get_card_dependencies',
-    description: 'Get cards that this card depends on',
+    description: 'Get the tasks that are blocking this task',
     inputSchema: {
       type: 'object',
       properties: {
-        project_id: { type: 'string', description: 'Project ID' },
-        card_id: { type: 'string', description: 'Card ID' },
+        card_id: { type: 'string', description: 'ID of the task' },
       },
-      required: ['project_id', 'card_id'],
+      required: ['card_id'],
     },
   },
   {
     name: 'get_card_dependents',
-    description: 'Get cards that depend on this card',
+    description: 'Get the tasks that are blocked by this task',
     inputSchema: {
       type: 'object',
       properties: {
-        project_id: { type: 'string', description: 'Project ID' },
-        card_id: { type: 'string', description: 'Card ID' },
+        card_id: { type: 'string', description: 'ID of the task' },
       },
-      required: ['project_id', 'card_id'],
+      required: ['card_id'],
     },
   },
 
   // Event History
   {
-    name: 'get_project_history',
-    description: 'Get event history for a project',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        project_id: { type: 'string', description: 'Project ID' },
-        limit: { type: 'number', description: 'Maximum number of events to return' },
-      },
-      required: ['project_id'],
-    },
-  },
-  {
-    name: 'get_workspace_history',
-    description: 'Get event history for the workspace',
+    name: 'get_history',
+    description: 'Get the history of changes to the board (task movements, status changes, etc.)',
     inputSchema: {
       type: 'object',
       properties: {
@@ -314,74 +194,29 @@ const tools = [
   },
   {
     name: 'get_card_history',
-    description: 'Get event history for a specific card',
+    description: 'Get the history of changes to a specific task',
     inputSchema: {
       type: 'object',
       properties: {
-        project_id: { type: 'string', description: 'Project ID' },
-        card_id: { type: 'string', description: 'Card ID' },
+        card_id: { type: 'string', description: 'ID of the task' },
         limit: { type: 'number', description: 'Maximum number of events to return' },
       },
-      required: ['project_id', 'card_id'],
+      required: ['card_id'],
     },
   },
 ];
 
-// Tool handler function - takes workspaceId as parameter
-async function handleToolCall(workspaceId: string, name: string, args: Record<string, unknown> | undefined): Promise<unknown> {
+// Tool handler function - takes projectId as parameter
+async function handleToolCall(projectId: string, name: string, args: Record<string, unknown> | undefined): Promise<unknown> {
   switch (name) {
     // Project Management
-    case 'list_projects':
-      return apiRequest('GET', `/workspaces/${workspaceId}/projects`);
-
-    case 'create_project':
-      return apiRequest('POST', `/workspaces/${workspaceId}/projects`, {
-        name: args?.name,
-        description: args?.description,
-      });
-
     case 'get_project':
-      return apiRequest('GET', `/projects/${args?.project_id}`);
+      return apiRequest('GET', `/projects/${projectId}`);
 
-    case 'update_project':
-      return apiRequest('PUT', `/projects/${args?.project_id}`, {
-        name: args?.name,
-        description: args?.description,
-      });
-
-    case 'delete_project':
-      await apiRequest('DELETE', `/projects/${args?.project_id}`);
-      return { success: true };
-
-    // Column Management
-    case 'create_column':
-      return apiRequest('POST', `/projects/${args?.project_id}/columns`, {
-        name: args?.name,
-        position: args?.position,
-      });
-
-    case 'rename_column':
-      return apiRequest('PUT', `/columns/${args?.column_id}`, {
-        project_id: args?.project_id,
-        name: args?.name,
-      });
-
-    case 'move_column':
-      return apiRequest('PUT', `/columns/${args?.column_id}`, {
-        project_id: args?.project_id,
-        position: args?.position,
-      });
-
-    case 'delete_column':
-      await apiRequest('DELETE', `/columns/${args?.column_id}`, {
-        project_id: args?.project_id,
-      });
-      return { success: true };
-
-    // Card Management
+    // Task Management
     case 'create_card':
       return apiRequest('POST', `/columns/${args?.column_id}/cards`, {
-        project_id: args?.project_id,
+        project_id: projectId,
         title: args?.title,
         description: args?.description,
         position: args?.position,
@@ -389,56 +224,51 @@ async function handleToolCall(workspaceId: string, name: string, args: Record<st
 
     case 'move_card':
       return apiRequest('PUT', `/cards/${args?.card_id}`, {
-        project_id: args?.project_id,
+        project_id: projectId,
         column_id: args?.column_id,
         position: args?.position,
       });
 
     case 'update_card':
       return apiRequest('PUT', `/cards/${args?.card_id}`, {
-        project_id: args?.project_id,
+        project_id: projectId,
         title: args?.title,
         description: args?.description,
       });
 
     case 'delete_card':
       await apiRequest('DELETE', `/cards/${args?.card_id}`, {
-        project_id: args?.project_id,
+        project_id: projectId,
       });
       return { success: true };
 
     // Dependency Management
     case 'add_dependency':
       return apiRequest('POST', `/cards/${args?.card_id}/dependencies`, {
-        project_id: args?.project_id,
+        project_id: projectId,
         depends_on_card_id: args?.depends_on_card_id,
       });
 
     case 'remove_dependency':
       await apiRequest('DELETE', `/cards/${args?.card_id}/dependencies/${args?.depends_on_card_id}`, {
-        project_id: args?.project_id,
+        project_id: projectId,
       });
       return { success: true };
 
     case 'get_card_dependencies':
-      return apiRequest('GET', `/cards/${args?.card_id}/dependencies?project_id=${args?.project_id}`);
+      return apiRequest('GET', `/cards/${args?.card_id}/dependencies?project_id=${projectId}`);
 
     case 'get_card_dependents':
-      return apiRequest('GET', `/cards/${args?.card_id}/dependents?project_id=${args?.project_id}`);
+      return apiRequest('GET', `/cards/${args?.card_id}/dependents?project_id=${projectId}`);
 
     // Event History
-    case 'get_project_history': {
+    case 'get_history': {
       const limitParam = args?.limit ? `?limit=${args.limit}` : '';
-      return apiRequest('GET', `/projects/${args?.project_id}/events${limitParam}`);
-    }
-
-    case 'get_workspace_history': {
-      const limitParam = args?.limit ? `?limit=${args.limit}` : '';
-      return apiRequest('GET', `/workspaces/${workspaceId}/events${limitParam}`);
+      return apiRequest('GET', `/projects/${projectId}/events${limitParam}`);
     }
 
     case 'get_card_history': {
-      const params = new URLSearchParams({ project_id: args?.project_id as string });
+      const params = new URLSearchParams({ project_id: projectId });
       if (args?.limit) {
         params.append('limit', String(args.limit));
       }
@@ -467,9 +297,9 @@ app.use((req, res, next) => {
   next();
 });
 
-// Store sessions with workspace context
+// Store sessions with project context
 interface Session {
-  workspaceId: string;
+  projectId: string;
   createdAt: Date;
 }
 
@@ -479,6 +309,7 @@ const sessions = new Map<string, Session>();
 const SERVER_INFO = {
   name: 'yakataka',
   version: '1.0.0',
+  description: 'Kanban board for tracking tasks. Cards represent tasks to complete, columns represent workflow statuses (e.g., To Do, In Progress, Done). Use get_project to see all tasks and their current status.',
 };
 
 const SERVER_CAPABILITIES = {
@@ -510,7 +341,7 @@ interface JsonRpcResponse {
 async function handleMcpMethod(
   method: string,
   params: Record<string, unknown> | undefined,
-  workspaceId: string
+  projectId: string
 ): Promise<unknown> {
   switch (method) {
     case 'initialize':
@@ -537,7 +368,7 @@ async function handleMcpMethod(
       }
 
       try {
-        const result = await handleToolCall(workspaceId, toolName, toolArgs);
+        const result = await handleToolCall(projectId, toolName, toolArgs);
         return {
           content: [
             {
@@ -568,14 +399,14 @@ async function handleMcpMethod(
 }
 
 // Parse JSON body middleware
-app.use('/mcp/:workspaceId', express.json());
+app.use('/mcp/:projectId', express.json());
 
-// MCP endpoint - workspace ID in URL path
-app.all('/mcp/:workspaceId', async (req: Request, res: Response) => {
-  const { workspaceId } = req.params;
+// MCP endpoint - project ID in URL path
+app.all('/mcp/:projectId', async (req: Request, res: Response) => {
+  const { projectId } = req.params;
 
-  if (!workspaceId || !/^[a-f0-9-]+$/i.test(workspaceId)) {
-    res.status(400).json({ error: 'Invalid workspace ID' });
+  if (!projectId || !/^[a-f0-9-]+$/i.test(projectId)) {
+    res.status(400).json({ error: 'Invalid project ID' });
     return;
   }
 
@@ -634,9 +465,9 @@ app.all('/mcp/:workspaceId', async (req: Request, res: Response) => {
     // For initialize request, create a new session
     if (request.method === 'initialize') {
       sessionId = randomUUID();
-      session = { workspaceId, createdAt: new Date() };
+      session = { projectId, createdAt: new Date() };
       sessions.set(sessionId, session);
-      console.log(`New session: ${sessionId} (workspace: ${workspaceId})`);
+      console.log(`New session: ${sessionId} (project: ${projectId})`);
     }
 
     // Session required for non-initialize requests
@@ -655,8 +486,8 @@ app.all('/mcp/:workspaceId', async (req: Request, res: Response) => {
 
     // Execute the method
     try {
-      const effectiveWorkspaceId = session?.workspaceId || workspaceId;
-      const result = await handleMcpMethod(request.method, request.params, effectiveWorkspaceId);
+      const effectiveProjectId = session?.projectId || projectId;
+      const result = await handleMcpMethod(request.method, request.params, effectiveProjectId);
 
       const response: JsonRpcResponse = {
         jsonrpc: '2.0',
@@ -695,8 +526,8 @@ app.all('/mcp/:workspaceId', async (req: Request, res: Response) => {
     }
 
     try {
-      const effectiveWorkspaceId = session?.workspaceId || workspaceId;
-      const result = await handleMcpMethod(request.method, request.params, effectiveWorkspaceId);
+      const effectiveProjectId = session?.projectId || projectId;
+      const result = await handleMcpMethod(request.method, request.params, effectiveProjectId);
       responses.push({
         jsonrpc: '2.0',
         id: request.id,
@@ -731,24 +562,24 @@ app.get('/health', (_req: Request, res: Response) => {
   });
 });
 
-// List active workspaces
-app.get('/workspaces', (_req: Request, res: Response) => {
-  const workspaces = new Set<string>();
+// List active projects
+app.get('/projects', (_req: Request, res: Response) => {
+  const projects = new Set<string>();
   for (const [, session] of sessions) {
-    workspaces.add(session.workspaceId);
+    projects.add(session.projectId);
   }
   res.json({
-    workspaces: Array.from(workspaces),
+    projects: Array.from(projects),
   });
 });
 
 // Start server
 app.listen(port, () => {
-  console.log(`TakaYaka MCP server started on port ${port}`);
+  console.log(`YakaTaka MCP server started on port ${port}`);
   console.log(`Backend: ${backendUrl}`);
   console.log('');
-  console.log(`MCP endpoint: http://localhost:${port}/mcp/{workspace-id}`);
+  console.log(`MCP endpoint: http://localhost:${port}/mcp/{project-id}`);
   console.log('');
-  console.log('To connect Claude Code to a workspace:');
-  console.log(`  claude mcp add yakataka --transport http http://localhost:${port}/mcp/{workspace-id}`);
+  console.log('To connect Claude Code to a project:');
+  console.log(`  claude mcp add yakataka --transport http http://localhost:${port}/mcp/{project-id}`);
 });

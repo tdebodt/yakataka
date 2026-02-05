@@ -85,14 +85,14 @@ All state changes are stored as events in SQLite. State is reconstructed by repl
 
 ## MCP Server
 
-The MCP server uses Streamable HTTP transport (MCP protocol 2025-03-26) and supports any workspace. It starts automatically with `npm run dev` on port 3002.
+The MCP server uses Streamable HTTP transport (MCP protocol 2025-03-26) and is project-scoped. It starts automatically with `npm run dev` on port 3002.
 
-To connect Claude Code to a specific workspace:
+To connect Claude Code to a specific project:
 ```bash
-claude mcp add yakataka --transport http http://localhost:3002/mcp/{workspace-id}
+claude mcp add yakataka --transport http http://localhost:3002/mcp/{project-id}
 ```
 
-The workspace ID is the UUID in the browser URL (e.g., `http://localhost:5173/abc123-def456-...`).
+The project ID can be found in the Project Settings modal (click the gear icon on a project).
 
 ### Manual MCP Server Options
 ```bash
@@ -103,7 +103,26 @@ node mcp-server/dist/index.js --port 4000
 node mcp-server/dist/index.js --backend http://other-host:3000
 ```
 
-It provides 19 tools for managing projects, columns, cards, and dependencies.
+It provides 11 tools for managing tasks and dependencies within a project:
+
+**Board Overview**
+- `get_project` - Get the Kanban board with all tasks and workflow statuses
+
+**Task Management**
+- `create_card` - Create a new task in a workflow status
+- `move_card` - Move a task to a different workflow status
+- `update_card` - Update a task's title and/or description
+- `delete_card` - Delete a task from the board
+
+**Dependency Management**
+- `add_dependency` - Mark a task as blocked by another task
+- `remove_dependency` - Remove a blocker from a task
+- `get_card_dependencies` - Get the tasks that are blocking this task
+- `get_card_dependents` - Get the tasks that are blocked by this task
+
+**Event History**
+- `get_history` - Get the history of changes to the board
+- `get_card_history` - Get the history of changes to a specific task
 
 ## Database
 

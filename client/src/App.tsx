@@ -2,7 +2,6 @@ import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ProjectList } from './components/ProjectList';
 import { ProjectBoard } from './components/ProjectBoard';
-import { CopyMcpCommand } from './components/CopyMcpCommand';
 import { useWorkspace, useProject } from './hooks/useApi';
 
 // UUID generator with fallback for non-secure contexts (http://)
@@ -108,7 +107,6 @@ export function App() {
           ) : (
             <ProjectBoard
               project={project}
-              workspaceId={workspaceId}
               onUpdateProject={updateProject}
               onDeleteProject={handleDeleteProject}
               onAddColumn={addColumn}
@@ -137,9 +135,6 @@ export function App() {
               <p className="text-gray-500 mb-6">
                 Create a project to get started with your Kanban board.
               </p>
-              <div className="mt-8">
-                <CopyMcpCommand workspaceId={workspaceId} />
-              </div>
             </div>
           </div>
         )}
