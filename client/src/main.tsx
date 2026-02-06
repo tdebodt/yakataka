@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { ThemeProvider } from './context/ThemeContext';
 import { App } from './App';
 import './index.css';
 
@@ -24,11 +25,13 @@ function RedirectToNewWorkspace() {
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <BrowserRouter>
-      <Routes>
-        <Route path="/:workspaceId" element={<App />} />
-        <Route path="/" element={<RedirectToNewWorkspace />} />
-      </Routes>
-    </BrowserRouter>
+    <ThemeProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/:workspaceId" element={<App />} />
+          <Route path="/" element={<RedirectToNewWorkspace />} />
+        </Routes>
+      </BrowserRouter>
+    </ThemeProvider>
   </React.StrictMode>
 );

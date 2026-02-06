@@ -73,7 +73,7 @@ export function CardHistoryModal({
     <Modal isOpen={isOpen} onClose={onClose} title={`History: ${card.title}`}>
       <div className="space-y-4">
         {loading && (
-          <p className="text-sm text-gray-500">Loading history...</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Loading history...</p>
         )}
 
         {error && (
@@ -81,7 +81,7 @@ export function CardHistoryModal({
         )}
 
         {!loading && !error && events.length === 0 && (
-          <p className="text-sm text-gray-500">No history available</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">No history available</p>
         )}
 
         {!loading && !error && events.length > 0 && (
@@ -91,21 +91,21 @@ export function CardHistoryModal({
               return (
                 <div
                   key={event.id}
-                  className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg"
+                  className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
                 >
                   <div className="flex-shrink-0 w-2 h-2 mt-2 rounded-full bg-primary-500" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-gray-900">
+                      <span className="text-sm font-medium text-gray-900 dark:text-white">
                         {formatEventType(event.event_type)}
                       </span>
                       {isMcp && (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
                           Claude Code
                         </span>
                       )}
                     </div>
-                    <p className="text-sm text-gray-600 mt-0.5">
+                    <p className="text-sm text-gray-600 dark:text-gray-300 mt-0.5">
                       {getEventDescription(event)}
                     </p>
                     <p className="text-xs text-gray-400 mt-1">

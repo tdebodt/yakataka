@@ -74,10 +74,10 @@ export function Card({
           {...provided.draggableProps}
           {...provided.dragHandleProps}
           className={`
-            bg-white rounded-lg border p-3 mb-2 cursor-grab
+            bg-white dark:bg-gray-800 rounded-lg border p-3 mb-2 cursor-grab
             transition-shadow
             ${snapshot.isDragging ? 'shadow-card-hover ring-2 ring-primary-500' : 'shadow-card hover:shadow-card-hover'}
-            ${hasUnresolvedDependencies ? 'border-l-4 border-l-amber-400' : 'border-gray-200'}
+            ${hasUnresolvedDependencies ? 'border-l-4 border-l-amber-400' : 'border-gray-200 dark:border-gray-600'}
           `}
         >
           {isEditing ? (
@@ -88,14 +88,14 @@ export function Card({
                 value={editTitle}
                 onChange={(e) => setEditTitle(e.target.value)}
                 onKeyDown={handleKeyDown}
-                className="w-full px-2 py-1 text-sm border rounded focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
                 placeholder="Card title"
               />
               <textarea
                 value={editDescription}
                 onChange={(e) => setEditDescription(e.target.value)}
                 onKeyDown={handleKeyDown}
-                className="w-full px-2 py-1 text-sm border rounded focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
+                className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
                 placeholder="Description (optional)"
                 rows={2}
               />
@@ -112,7 +112,7 @@ export function Card({
                     setEditDescription(card.description);
                     setIsEditing(false);
                   }}
-                  className="px-2 py-1 text-xs text-gray-600 hover:text-gray-800"
+                  className="px-2 py-1 text-xs text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white"
                 >
                   Cancel
                 </button>
@@ -122,7 +122,7 @@ export function Card({
             <div className="group">
               <div className="flex items-start justify-between gap-2">
                 <h4
-                  className="text-sm font-medium text-gray-900 flex-1 cursor-pointer"
+                  className="text-sm font-medium text-gray-900 dark:text-white flex-1 cursor-pointer"
                   onClick={() => setIsEditing(true)}
                 >
                   {card.title}
@@ -130,20 +130,20 @@ export function Card({
                 <div className="relative" ref={menuRef}>
                   <button
                     onClick={() => setShowMenu(!showMenu)}
-                    className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-gray-600 transition-opacity p-1"
+                    className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-opacity p-1"
                   >
                     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                       <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
                     </svg>
                   </button>
                   {showMenu && (
-                    <div className="absolute right-0 top-6 bg-white border rounded-lg shadow-lg py-1 z-10 min-w-[120px]">
+                    <div className="absolute right-0 top-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg py-1 z-10 min-w-[120px]">
                       <button
                         onClick={() => {
                           setIsEditing(true);
                           setShowMenu(false);
                         }}
-                        className="w-full px-3 py-1.5 text-left text-sm hover:bg-gray-100"
+                        className="w-full px-3 py-1.5 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
                       >
                         Edit
                       </button>
@@ -152,7 +152,7 @@ export function Card({
                           onShowDependencies();
                           setShowMenu(false);
                         }}
-                        className="w-full px-3 py-1.5 text-left text-sm hover:bg-gray-100"
+                        className="w-full px-3 py-1.5 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
                       >
                         Dependencies
                       </button>
@@ -161,7 +161,7 @@ export function Card({
                           onShowHistory();
                           setShowMenu(false);
                         }}
-                        className="w-full px-3 py-1.5 text-left text-sm hover:bg-gray-100"
+                        className="w-full px-3 py-1.5 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
                       >
                         History
                       </button>
@@ -170,7 +170,7 @@ export function Card({
                           onDelete();
                           setShowMenu(false);
                         }}
-                        className="w-full px-3 py-1.5 text-left text-sm text-red-600 hover:bg-red-50"
+                        className="w-full px-3 py-1.5 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
                       >
                         Delete
                       </button>
@@ -179,7 +179,7 @@ export function Card({
                 </div>
               </div>
               {card.description && (
-                <p className="mt-1 text-xs text-gray-500 line-clamp-2">{card.description}</p>
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400 line-clamp-2">{card.description}</p>
               )}
               {hasDependencies && (
                 <div className="mt-2 flex items-center gap-1 text-xs text-gray-400">

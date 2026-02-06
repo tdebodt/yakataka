@@ -104,7 +104,7 @@ export function ProjectBoard({
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
-      <div className="px-6 py-4 border-b flex items-center justify-between bg-white">
+      <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between bg-white dark:bg-gray-900">
         <div className="flex items-center gap-4">
           {isEditingTitle ? (
             <input
@@ -119,19 +119,19 @@ export function ProjectBoard({
                   setIsEditingTitle(false);
                 }
               }}
-              className="text-xl font-bold px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="text-xl font-bold px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
               autoFocus
             />
           ) : (
             <h1
-              className="text-xl font-bold text-gray-900 cursor-pointer hover:text-primary-600"
+              className="text-xl font-bold text-gray-900 dark:text-white cursor-pointer hover:text-primary-600 dark:hover:text-primary-400"
               onClick={() => setIsEditingTitle(true)}
             >
               {project.name}
             </h1>
           )}
           {project.description && (
-            <span className="text-sm text-gray-500">{project.description}</span>
+            <span className="text-sm text-gray-500 dark:text-gray-400">{project.description}</span>
           )}
         </div>
         <div className="flex items-center gap-2">
@@ -146,7 +146,7 @@ export function ProjectBoard({
       </div>
 
       {/* Board */}
-      <div className="flex-1 overflow-x-auto bg-gray-50 p-6">
+      <div className="flex-1 overflow-x-auto bg-gray-50 dark:bg-gray-800 p-6">
         <DragDropContext onDragEnd={handleDragEnd}>
           <Droppable droppableId="board" type="column" direction="horizontal">
             {(provided) => (
@@ -177,7 +177,7 @@ export function ProjectBoard({
 
                 {/* Add Column Button */}
                 {isAddingColumn ? (
-                  <div className="bg-gray-100 rounded-xl w-72 flex-shrink-0 p-3">
+                  <div className="bg-gray-100 dark:bg-gray-700 rounded-xl w-72 flex-shrink-0 p-3">
                     <Input
                       value={newColumnName}
                       onChange={(e) => setNewColumnName(e.target.value)}
@@ -210,7 +210,7 @@ export function ProjectBoard({
                 ) : (
                   <button
                     onClick={() => setIsAddingColumn(true)}
-                    className="bg-gray-200 hover:bg-gray-300 rounded-xl w-72 flex-shrink-0 h-12 flex items-center justify-center text-gray-600 transition-colors"
+                    className="bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 rounded-xl w-72 flex-shrink-0 h-12 flex items-center justify-center text-gray-600 dark:text-gray-300 transition-colors"
                   >
                     + Add column
                   </button>
@@ -234,24 +234,24 @@ export function ProjectBoard({
             onChange={(e) => setEditTitle(e.target.value)}
           />
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
               Description
             </label>
             <textarea
               value={project.description}
               onChange={(e) => onUpdateProject({ description: e.target.value })}
               placeholder="Project description..."
-              className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
               rows={3}
             />
           </div>
 
-          <div className="border-t pt-4">
+          <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
             <CopyMcpCommand projectId={project.id} />
           </div>
 
-          <div className="border-t pt-4">
-            <h4 className="text-sm font-medium text-red-600 mb-2">Danger Zone</h4>
+          <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+            <h4 className="text-sm font-medium text-red-600 dark:text-red-400 mb-2">Danger Zone</h4>
             <Button
               variant="danger"
               size="sm"

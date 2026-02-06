@@ -1,5 +1,6 @@
 import db from '../db/index.js';
 import type { BaseEvent, AggregateType, DomainEvent } from '../types.js';
+import { eventBroadcaster } from './eventBroadcaster.js';
 
 interface EventRow {
   id: number;
@@ -77,10 +78,17 @@ export class EventStore {
       throw err;
     }
 
-    return {
+    const savedEvent: DomainEvent = {
       ...event,
       timestamp
-    };
+    } as DomainEvent;
+
+    // Broadcast to SSE clients if this is a project event
+    if (event.aggregate_type === 'project') {
+      eventBroadcaster.broadcast(event.aggregate_id, savedEvent);
+    }
+
+    return savedEvent;
   }
 
   getEvents(aggregateType: AggregateType, aggregateId: string): DomainEvent[] {

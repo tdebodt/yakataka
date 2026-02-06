@@ -8,6 +8,7 @@ import projectsRouter from './routes/projects.js';
 import columnsRouter from './routes/columns.js';
 import cardsRouter from './routes/cards.js';
 import dependenciesRouter from './routes/dependencies.js';
+import sseRouter from './routes/sse.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -30,6 +31,7 @@ app.use('/api', projectsRouter);
 app.use('/api', columnsRouter);
 app.use('/api', cardsRouter);
 app.use('/api', dependenciesRouter);
+app.use('/api', sseRouter);
 
 // Serve static files from client build in production
 const clientDistPath = path.join(__dirname, '..', '..', 'client', 'dist');

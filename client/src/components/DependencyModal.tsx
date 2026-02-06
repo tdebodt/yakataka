@@ -42,7 +42,7 @@ export function DependencyModal({
       <div className="space-y-4">
         {/* Current Dependencies */}
         <div>
-          <h4 className="text-sm font-medium text-gray-700 mb-2">
+          <h4 className="text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
             This card depends on:
           </h4>
           {currentDependencies.length > 0 ? (
@@ -52,17 +52,17 @@ export function DependencyModal({
                 return (
                   <li
                     key={depCard.id}
-                    className="flex items-center justify-between p-2 bg-gray-50 rounded-lg"
+                    className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded-lg"
                   >
                     <div>
-                      <span className="text-sm font-medium">{depCard.title}</span>
+                      <span className="text-sm font-medium text-gray-900 dark:text-white">{depCard.title}</span>
                       <span className="text-xs text-gray-400 ml-2">
                         in {column?.name}
                       </span>
                     </div>
                     <button
                       onClick={() => onRemoveDependency(depCard.id)}
-                      className="text-red-500 hover:text-red-700 text-xs"
+                      className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 text-xs"
                     >
                       Remove
                     </button>
@@ -71,21 +71,21 @@ export function DependencyModal({
               })}
             </ul>
           ) : (
-            <p className="text-sm text-gray-500">No dependencies</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">No dependencies</p>
           )}
         </div>
 
         {/* Add Dependency */}
         {availableCards.length > 0 && (
-          <div className="border-t pt-4">
-            <h4 className="text-sm font-medium text-gray-700 mb-2">
+          <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
               Add dependency:
             </h4>
             <div className="flex gap-2">
               <select
                 value={selectedCardId}
                 onChange={(e) => setSelectedCardId(e.target.value)}
-                className="flex-1 px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
               >
                 <option value="">Select a card...</option>
                 {columns.map((column) => {

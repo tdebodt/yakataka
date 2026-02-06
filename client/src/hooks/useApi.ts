@@ -1,5 +1,6 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import type { Project, Card, Column, CardEvent } from '../types';
+import { useProjectEvents } from './useProjectEvents';
 
 const API_BASE = '/api';
 
@@ -62,6 +63,7 @@ export function useProject(projectId: string | null) {
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const loadProjectRef = useRef<() => Promise<void>>();
 
   const loadProject = useCallback(async () => {
     if (!projectId) return;
@@ -76,6 +78,19 @@ export function useProject(projectId: string | null) {
       setLoading(false);
     }
   }, [projectId]);
+
+  // Keep ref updated for SSE callback
+  useEffect(() => {
+    loadProjectRef.current = loadProject;
+  }, [loadProject]);
+
+  // Subscribe to SSE events for real-time updates
+  const { status: sseStatus } = useProjectEvents(projectId, {
+    onEvent: useCallback(() => {
+      // Refetch project on any event
+      loadProjectRef.current?.();
+    }, []),
+  });
 
   const updateProject = useCallback(async (updates: { name?: string; description?: string }) => {
     if (!projectId) return;
@@ -278,6 +293,7 @@ export function useProject(projectId: string | null) {
     project,
     loading,
     error,
+    sseStatus,
     loadProject,
     updateProject,
     deleteProject,

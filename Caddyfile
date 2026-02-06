@@ -1,0 +1,9 @@
+yakataka.cc {
+	handle /mcp/* {
+		reverse_proxy mcp-server:3002
+	}
+
+	handle {
+		reverse_proxy server:3000
+	}
+}

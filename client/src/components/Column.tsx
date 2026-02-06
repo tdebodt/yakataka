@@ -91,7 +91,7 @@ export function Column({
         <div
           ref={provided.innerRef}
           {...provided.draggableProps}
-          className="bg-gray-100 rounded-xl w-72 flex-shrink-0 flex flex-col max-h-full"
+          className="bg-gray-100 dark:bg-gray-700 rounded-xl w-72 flex-shrink-0 flex flex-col max-h-full"
         >
           {/* Column Header */}
           <div
@@ -112,11 +112,11 @@ export function Column({
                     setIsEditing(false);
                   }
                 }}
-                className="flex-1 px-2 py-1 text-sm font-semibold bg-white border rounded focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="flex-1 px-2 py-1 text-sm font-semibold bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
             ) : (
               <h3
-                className="font-semibold text-gray-700 cursor-pointer hover:text-gray-900"
+                className="font-semibold text-gray-700 dark:text-gray-200 cursor-pointer hover:text-gray-900 dark:hover:text-white"
                 onClick={() => setIsEditing(true)}
               >
                 {column.name}
@@ -127,20 +127,20 @@ export function Column({
               <div className="relative" ref={menuRef}>
                 <button
                   onClick={() => setShowMenu(!showMenu)}
-                  className="text-gray-400 hover:text-gray-600 p-1"
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1"
                 >
                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
                   </svg>
                 </button>
                 {showMenu && (
-                  <div className="absolute right-0 top-6 bg-white border rounded-lg shadow-lg py-1 z-10 min-w-[120px]">
+                  <div className="absolute right-0 top-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg py-1 z-10 min-w-[120px]">
                     <button
                       onClick={() => {
                         setIsEditing(true);
                         setShowMenu(false);
                       }}
-                      className="w-full px-3 py-1.5 text-left text-sm hover:bg-gray-100"
+                      className="w-full px-3 py-1.5 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
                     >
                       Rename
                     </button>
@@ -149,7 +149,7 @@ export function Column({
                         onDelete();
                         setShowMenu(false);
                       }}
-                      className="w-full px-3 py-1.5 text-left text-sm text-red-600 hover:bg-red-50"
+                      className="w-full px-3 py-1.5 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
                     >
                       Delete
                     </button>
@@ -167,7 +167,7 @@ export function Column({
                 {...provided.droppableProps}
                 className={`
                   flex-1 px-3 pb-3 overflow-y-auto min-h-[100px]
-                  ${snapshot.isDraggingOver ? 'bg-primary-50' : ''}
+                  ${snapshot.isDraggingOver ? 'bg-primary-50 dark:bg-primary-900/20' : ''}
                 `}
               >
                 {column.cards.map((card, cardIndex) => (
@@ -187,7 +187,7 @@ export function Column({
 
                 {/* Add Card */}
                 {isAddingCard ? (
-                  <div className="bg-white rounded-lg border p-3">
+                  <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600 p-3">
                     <input
                       ref={newCardRef}
                       type="text"
@@ -201,7 +201,7 @@ export function Column({
                         }
                       }}
                       placeholder="Enter card title..."
-                      className="w-full px-2 py-1 text-sm border rounded focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
                     />
                     <div className="flex gap-2 mt-2">
                       <button
@@ -215,7 +215,7 @@ export function Column({
                           setNewCardTitle('');
                           setIsAddingCard(false);
                         }}
-                        className="px-3 py-1 text-xs text-gray-600 hover:text-gray-800"
+                        className="px-3 py-1 text-xs text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white"
                       >
                         Cancel
                       </button>
@@ -224,7 +224,7 @@ export function Column({
                 ) : (
                   <button
                     onClick={() => setIsAddingCard(true)}
-                    className="w-full py-2 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded-lg transition-colors"
+                    className="w-full py-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
                   >
                     + Add card
                   </button>

@@ -3,6 +3,7 @@ import type { Project } from '../types';
 import { Modal } from './Modal';
 import { Input } from './Input';
 import { Button } from './Button';
+import { ThemeToggle } from './ThemeToggle';
 
 interface ProjectListProps {
   projects: Project[];
@@ -38,13 +39,14 @@ export function ProjectList({
 
   return (
     <div className="h-full flex flex-col">
-      <div className="p-4 border-b">
-        <h2 className="text-lg font-semibold text-gray-900">Projects</h2>
+      <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Projects</h2>
+        <ThemeToggle />
       </div>
 
       <div className="flex-1 overflow-y-auto p-2">
         {projects.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
+          <div className="text-center py-8 text-gray-500 dark:text-gray-400">
             <p className="text-sm">No projects yet</p>
             <p className="text-xs mt-1">Create one to get started</p>
           </div>
@@ -57,8 +59,8 @@ export function ProjectList({
                   className={`
                     w-full px-3 py-2 text-left rounded-lg transition-colors
                     ${selectedProjectId === project.id
-                      ? 'bg-primary-100 text-primary-700'
-                      : 'hover:bg-gray-100 text-gray-700'
+                      ? 'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300'
+                      : 'hover:bg-gray-100 text-gray-700 dark:hover:bg-gray-800 dark:text-gray-200'
                     }
                   `}
                 >
@@ -66,7 +68,7 @@ export function ProjectList({
                     {project.name}
                   </span>
                   {project.description && (
-                    <span className="text-xs text-gray-500 truncate block">
+                    <span className="text-xs text-gray-500 dark:text-gray-400 truncate block">
                       {project.description}
                     </span>
                   )}
@@ -77,7 +79,7 @@ export function ProjectList({
         )}
       </div>
 
-      <div className="p-4 border-t">
+      <div className="p-4 border-t border-gray-200 dark:border-gray-700">
         <Button
           onClick={() => setIsCreating(true)}
           className="w-full"
@@ -105,14 +107,14 @@ export function ProjectList({
             autoFocus
           />
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
               Description (optional)
             </label>
             <textarea
               value={newDescription}
               onChange={(e) => setNewDescription(e.target.value)}
               placeholder="Project description..."
-              className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
               rows={3}
             />
           </div>
