@@ -26,8 +26,9 @@ export function DependencyModal({
   if (!card) return null;
 
   const currentDependencies = card.dependencies.map((id) => allCards.get(id)).filter(Boolean) as Card[];
+  const depSet = new Set(card.dependencies);
   const availableCards = [...allCards.values()].filter(
-    (c) => c.id !== card.id && !card.dependencies.includes(c.id)
+    (c) => c.id !== card.id && !depSet.has(c.id)
   );
 
   const handleAdd = () => {

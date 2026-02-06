@@ -10,8 +10,9 @@ interface CardHistoryModalProps {
   projectId: string;
 }
 
+const UPPER_CASE_RE = /([A-Z])/g;
 function formatEventType(eventType: string): string {
-  return eventType.replace(/([A-Z])/g, ' $1').trim();
+  return eventType.replace(UPPER_CASE_RE, ' $1').trim();
 }
 
 function formatTimestamp(timestamp: string): string {

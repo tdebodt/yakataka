@@ -64,6 +64,8 @@ export function useProject(projectId: string | null) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const loadProjectRef = useRef<() => Promise<void>>();
+  const projectRef = useRef<Project | null>(null);
+  projectRef.current = project;
 
   const loadProject = useCallback(async () => {
     if (!projectId) return;
@@ -128,10 +130,10 @@ export function useProject(projectId: string | null) {
   }, [projectId, loadProject]);
 
   const moveColumn = useCallback(async (columnId: string, position: number) => {
-    if (!projectId || !project) return;
+    if (!projectId || !projectRef.current) return;
 
     // Optimistically update local state
-    const previousProject = project;
+    const previousProject = projectRef.current;
     setProject((prev) => {
       if (!prev) return prev;
 
@@ -158,7 +160,7 @@ export function useProject(projectId: string | null) {
     } catch {
       setProject(previousProject);
     }
-  }, [projectId, project, loadProject]);
+  }, [projectId, loadProject]);
 
   const deleteColumn = useCallback(async (columnId: string) => {
     if (!projectId) return;
@@ -189,10 +191,10 @@ export function useProject(projectId: string | null) {
   }, [projectId, loadProject]);
 
   const moveCard = useCallback(async (cardId: string, columnId: string, position?: number) => {
-    if (!projectId || !project) return;
+    if (!projectId || !projectRef.current) return;
 
     // Optimistically update local state
-    const previousProject = project;
+    const previousProject = projectRef.current;
     setProject((prev) => {
       if (!prev) return prev;
 
@@ -259,7 +261,7 @@ export function useProject(projectId: string | null) {
       // Revert on error
       setProject(previousProject);
     }
-  }, [projectId, project, loadProject]);
+  }, [projectId, loadProject]);
 
   const deleteCard = useCallback(async (cardId: string) => {
     if (!projectId) return;

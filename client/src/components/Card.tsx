@@ -1,19 +1,32 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback, memo } from 'react';
 import { Draggable } from '@hello-pangea/dnd';
+import { useClickOutside } from '../hooks/useClickOutside';
 import type { Card as CardType } from '../types';
+
+const MoreDotsIcon = (
+  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+    <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+  </svg>
+);
+
+const DependencyIcon = (
+  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+  </svg>
+);
 
 interface CardProps {
   card: CardType;
   index: number;
-  onUpdate: (updates: { title?: string; description?: string }) => void;
-  onDelete: () => void;
-  onShowDependencies: () => void;
-  onShowHistory: () => void;
+  onUpdate: (cardId: string, updates: { title?: string; description?: string }) => void;
+  onDelete: (cardId: string) => void;
+  onShowDependencies: (card: CardType) => void;
+  onShowHistory: (card: CardType) => void;
   hasDependencies: boolean;
   hasUnresolvedDependencies: boolean;
 }
 
-export function Card({
+export const Card = memo(function Card({
   card,
   index,
   onUpdate,
@@ -37,19 +50,12 @@ export function Card({
     }
   }, [isEditing]);
 
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setShowMenu(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  const closeMenu = useCallback(() => setShowMenu(false), []);
+  useClickOutside(menuRef, closeMenu);
 
   const handleSave = () => {
     if (editTitle.trim()) {
-      onUpdate({ title: editTitle.trim(), description: editDescription });
+      onUpdate(card.id, { title: editTitle.trim(), description: editDescription });
     }
     setIsEditing(false);
   };
@@ -132,9 +138,7 @@ export function Card({
                     onClick={() => setShowMenu(!showMenu)}
                     className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-opacity p-1"
                   >
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-                    </svg>
+                    {MoreDotsIcon}
                   </button>
                   {showMenu && (
                     <div className="absolute right-0 top-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg py-1 z-10 min-w-[120px]">
@@ -149,7 +153,7 @@ export function Card({
                       </button>
                       <button
                         onClick={() => {
-                          onShowDependencies();
+                          onShowDependencies(card);
                           setShowMenu(false);
                         }}
                         className="w-full px-3 py-1.5 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -158,7 +162,7 @@ export function Card({
                       </button>
                       <button
                         onClick={() => {
-                          onShowHistory();
+                          onShowHistory(card);
                           setShowMenu(false);
                         }}
                         className="w-full px-3 py-1.5 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -167,7 +171,7 @@ export function Card({
                       </button>
                       <button
                         onClick={() => {
-                          onDelete();
+                          onDelete(card.id);
                           setShowMenu(false);
                         }}
                         className="w-full px-3 py-1.5 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
@@ -183,9 +187,7 @@ export function Card({
               )}
               {hasDependencies && (
                 <div className="mt-2 flex items-center gap-1 text-xs text-gray-400">
-                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                  </svg>
+                  {DependencyIcon}
                   <span>{card.dependencies.length} dep{card.dependencies.length !== 1 ? 's' : ''}</span>
                   {hasUnresolvedDependencies && (
                     <span className="text-amber-500 ml-1">(blocked)</span>
@@ -198,4 +200,4 @@ export function Card({
       )}
     </Draggable>
   );
-}
+});

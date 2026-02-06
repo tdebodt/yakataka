@@ -3,25 +3,17 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ProjectList } from './components/ProjectList';
 import { ProjectBoard } from './components/ProjectBoard';
 import { useWorkspace, useProject } from './hooks/useApi';
-
-// UUID generator with fallback for non-secure contexts (http://)
-function generateUUID(): string {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID();
-  }
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = (crypto.getRandomValues(new Uint8Array(1))[0] & 15) >> (c === 'x' ? 0 : 0);
-    const v = c === 'x' ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-}
+import { generateUUID } from './utils/uuid';
 
 export function App() {
   const { workspaceId } = useParams<{ workspaceId: string }>();
   const navigate = useNavigate();
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
-
+  const [userSelectedProjectId, setUserSelectedProjectId] = useState<string | null>(null);
   const { projects, loading: loadingProjects, loadProjects, createProject } = useWorkspace(workspaceId || '');
+
+  // Derive effective project ID: user selection, or fall back to first project
+  const selectedProjectId = userSelectedProjectId ?? projects[0]?.id ?? null;
+
   const {
     project,
     loading: loadingProject,
@@ -62,16 +54,9 @@ export function App() {
     }
   }, [selectedProjectId, loadProject]);
 
-  // Select first project by default
-  useEffect(() => {
-    if (projects.length > 0 && !selectedProjectId) {
-      setSelectedProjectId(projects[0].id);
-    }
-  }, [projects, selectedProjectId]);
-
   const handleDeleteProject = useCallback(async () => {
     await deleteProject();
-    setSelectedProjectId(null);
+    setUserSelectedProjectId(null);
     await loadProjects();
   }, [deleteProject, loadProjects]);
 
@@ -87,7 +72,7 @@ export function App() {
           <ProjectList
             projects={projects}
             selectedProjectId={selectedProjectId}
-            onSelectProject={setSelectedProjectId}
+            onSelectProject={setUserSelectedProjectId}
             onCreateProject={createProject}
           />
         </div>

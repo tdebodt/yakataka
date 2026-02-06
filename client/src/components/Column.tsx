@@ -1,23 +1,30 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback, memo } from 'react';
 import { Droppable, Draggable } from '@hello-pangea/dnd';
 import { Card } from './Card';
+import { useClickOutside } from '../hooks/useClickOutside';
 import type { Column as ColumnType, Card as CardType } from '../types';
+
+const MoreDotsIcon = (
+  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+    <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+  </svg>
+);
 
 interface ColumnProps {
   column: ColumnType;
   index: number;
   allCards: Map<string, CardType>;
   doneColumnId: string | null;
-  onRename: (name: string) => void;
-  onDelete: () => void;
-  onAddCard: (title: string, description?: string) => void;
+  onRename: (columnId: string, name: string) => void;
+  onDelete: (columnId: string) => void;
+  onAddCard: (columnId: string, title: string, description?: string) => void;
   onUpdateCard: (cardId: string, updates: { title?: string; description?: string }) => void;
   onDeleteCard: (cardId: string) => void;
   onShowDependencies: (card: CardType) => void;
   onShowHistory: (card: CardType) => void;
 }
 
-export function Column({
+export const Column = memo(function Column({
   column,
   index,
   allCards,
@@ -52,26 +59,19 @@ export function Column({
     }
   }, [isAddingCard]);
 
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setShowMenu(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  const closeMenu = useCallback(() => setShowMenu(false), []);
+  useClickOutside(menuRef, closeMenu);
 
   const handleSaveName = () => {
     if (editName.trim()) {
-      onRename(editName.trim());
+      onRename(column.id, editName.trim());
     }
     setIsEditing(false);
   };
 
   const handleAddCard = () => {
     if (newCardTitle.trim()) {
-      onAddCard(newCardTitle.trim());
+      onAddCard(column.id, newCardTitle.trim());
       setNewCardTitle('');
       setIsAddingCard(false);
     }
@@ -129,9 +129,7 @@ export function Column({
                   onClick={() => setShowMenu(!showMenu)}
                   className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1"
                 >
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-                  </svg>
+                  {MoreDotsIcon}
                 </button>
                 {showMenu && (
                   <div className="absolute right-0 top-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg py-1 z-10 min-w-[120px]">
@@ -146,7 +144,7 @@ export function Column({
                     </button>
                     <button
                       onClick={() => {
-                        onDelete();
+                        onDelete(column.id);
                         setShowMenu(false);
                       }}
                       className="w-full px-3 py-1.5 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
@@ -175,10 +173,10 @@ export function Column({
                     key={card.id}
                     card={card}
                     index={cardIndex}
-                    onUpdate={(updates) => onUpdateCard(card.id, updates)}
-                    onDelete={() => onDeleteCard(card.id)}
-                    onShowDependencies={() => onShowDependencies(card)}
-                    onShowHistory={() => onShowHistory(card)}
+                    onUpdate={onUpdateCard}
+                    onDelete={onDeleteCard}
+                    onShowDependencies={onShowDependencies}
+                    onShowHistory={onShowHistory}
                     hasDependencies={card.dependencies.length > 0}
                     hasUnresolvedDependencies={checkUnresolvedDependencies(card)}
                   />
@@ -236,4 +234,4 @@ export function Column({
       )}
     </Draggable>
   );
-}
+});

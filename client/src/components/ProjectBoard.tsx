@@ -1,13 +1,21 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, lazy, Suspense } from 'react';
 import { DragDropContext, Droppable, DropResult } from '@hello-pangea/dnd';
 import { Column } from './Column';
-import { DependencyModal } from './DependencyModal';
-import { CardHistoryModal } from './CardHistoryModal';
 import { CopyMcpCommand } from './CopyMcpCommand';
 import { Button } from './Button';
 import { Input } from './Input';
 import { Modal } from './Modal';
 import type { Project, Card as CardType } from '../types';
+
+const DependencyModal = lazy(() => import('./DependencyModal').then(m => ({ default: m.DependencyModal })));
+const CardHistoryModal = lazy(() => import('./CardHistoryModal').then(m => ({ default: m.CardHistoryModal })));
+
+const SettingsIcon = (
+  <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+  </svg>
+);
 
 interface ProjectBoardProps {
   project: Project;
@@ -59,11 +67,16 @@ export function ProjectBoard({
     return map;
   }, [project.columns]);
 
+  // Sort columns by position (memoized, immutable)
+  const sortedColumns = useMemo(
+    () => project.columns.toSorted((a, b) => a.position - b.position),
+    [project.columns]
+  );
+
   // Find the "Done" column (last column by convention)
   const doneColumnId = useMemo(() => {
-    const sorted = [...project.columns].sort((a, b) => a.position - b.position);
-    return sorted.length > 0 ? sorted[sorted.length - 1].id : null;
-  }, [project.columns]);
+    return sortedColumns.length > 0 ? sortedColumns[sortedColumns.length - 1].id : null;
+  }, [sortedColumns]);
 
   const handleDragEnd = useCallback(
     (result: DropResult) => {
@@ -136,10 +149,7 @@ export function ProjectBoard({
         </div>
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="sm" onClick={() => setShowSettings(true)}>
-            <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
+            {SettingsIcon}
             Settings
           </Button>
         </div>
@@ -155,18 +165,16 @@ export function ProjectBoard({
                 {...provided.droppableProps}
                 className="flex gap-4 h-full items-start"
               >
-                {project.columns
-                  .sort((a, b) => a.position - b.position)
-                  .map((column, index) => (
+                {sortedColumns.map((column, index) => (
                     <Column
                       key={column.id}
                       column={column}
                       index={index}
                       allCards={allCards}
                       doneColumnId={doneColumnId}
-                      onRename={(name) => onRenameColumn(column.id, name)}
-                      onDelete={() => onDeleteColumn(column.id)}
-                      onAddCard={(title, desc) => onAddCard(column.id, title, desc)}
+                      onRename={onRenameColumn}
+                      onDelete={onDeleteColumn}
+                      onAddCard={onAddCard}
                       onUpdateCard={onUpdateCard}
                       onDeleteCard={onDeleteCard}
                       onShowDependencies={setDependencyCard}
@@ -269,31 +277,35 @@ export function ProjectBoard({
       </Modal>
 
       {/* Dependency Modal */}
-      <DependencyModal
-        isOpen={dependencyCard !== null}
-        onClose={() => setDependencyCard(null)}
-        card={dependencyCard}
-        columns={project.columns}
-        allCards={allCards}
-        onAddDependency={(depId) => {
-          if (dependencyCard) {
-            onAddDependency(dependencyCard.id, depId);
-          }
-        }}
-        onRemoveDependency={(depId) => {
-          if (dependencyCard) {
-            onRemoveDependency(dependencyCard.id, depId);
-          }
-        }}
-      />
+      {dependencyCard && (
+        <Suspense fallback={null}>
+          <DependencyModal
+            isOpen
+            onClose={() => setDependencyCard(null)}
+            card={dependencyCard}
+            columns={project.columns}
+            allCards={allCards}
+            onAddDependency={(depId) => {
+              onAddDependency(dependencyCard.id, depId);
+            }}
+            onRemoveDependency={(depId) => {
+              onRemoveDependency(dependencyCard.id, depId);
+            }}
+          />
+        </Suspense>
+      )}
 
       {/* History Modal */}
-      <CardHistoryModal
-        isOpen={historyCard !== null}
-        onClose={() => setHistoryCard(null)}
-        card={historyCard}
-        projectId={project.id}
-      />
+      {historyCard && (
+        <Suspense fallback={null}>
+          <CardHistoryModal
+            isOpen
+            onClose={() => setHistoryCard(null)}
+            card={historyCard}
+            projectId={project.id}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }
