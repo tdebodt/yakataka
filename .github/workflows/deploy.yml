@@ -54,14 +54,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.LINODE_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.LINODE_HOST }} >> ~/.ssh/known_hosts
+
       - name: Copy config files to server
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.LINODE_HOST }}
-          username: ${{ secrets.LINODE_USER }}
-          key: ${{ secrets.LINODE_SSH_KEY }}
-          source: "compose.yml,Caddyfile"
-          target: /opt/yakataka
+        run: |
+          scp -i ~/.ssh/deploy_key compose.yml Caddyfile ${{ secrets.LINODE_USER }}@${{ secrets.LINODE_HOST }}:/opt/yakataka/
 
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1
