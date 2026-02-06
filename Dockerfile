@@ -5,7 +5,7 @@ COPY package.json package-lock.json ./
 COPY server/package.json server/
 COPY client/package.json client/
 COPY mcp-server/package.json mcp-server/
-RUN npm ci
+RUN npm install
 
 # Stage 2: Build all workspaces
 FROM deps AS build
@@ -23,7 +23,7 @@ COPY package.json package-lock.json ./
 COPY server/package.json server/
 COPY client/package.json client/
 COPY mcp-server/package.json mcp-server/
-RUN npm ci --omit=dev
+RUN npm install --omit=dev
 
 # Copy built artifacts
 COPY --from=build /app/server/dist server/dist
@@ -40,7 +40,7 @@ COPY package.json package-lock.json ./
 COPY server/package.json server/
 COPY client/package.json client/
 COPY mcp-server/package.json mcp-server/
-RUN npm ci --omit=dev
+RUN npm install --omit=dev
 
 # Copy built artifacts
 COPY --from=build /app/mcp-server/dist mcp-server/dist
